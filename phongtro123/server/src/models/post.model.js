@@ -59,6 +59,14 @@ const modelPost = new Schema(
             required: true,
             enum: ['vip', 'normal'],
         },
+        isPassRoom: {
+            type: Boolean,
+            default: false,
+        },
+        isAffiliateDecor: {
+            type: Boolean,
+            default: false,
+        },
         endDate: {
             type: Date,
             required: true,

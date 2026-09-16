@@ -149,15 +149,24 @@
     padding: 16px 0;
     border-bottom: 1px solid #eee;
 
+    .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
     .room-title {
         font-size: 18px;
         font-weight: 600;
         color: #2c2c2c;
-        margin-bottom: 12px;
         line-height: 1.4;
         display: flex;
         align-items: center;
         gap: 8px;
+        margin: 0;
 
         &:hover {
             color: var(--primary-color);
@@ -167,6 +176,29 @@
             color: var(--primary-color);
             font-size: 20px;
         }
+    }
+
+    .badge-pass,
+    .badge-decor {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .badge-pass {
+        background: rgba(168, 85, 247, 0.12);
+        color: #7c3aed;
+        border: 1px solid rgba(168, 85, 247, 0.25);
+    }
+
+    .badge-decor {
+        background: rgba(236, 72, 153, 0.12);
+        color: #be185d;
+        border: 1px solid rgba(236, 72, 153, 0.22);
     }
 
     .room-meta {

@@ -60,15 +60,30 @@
     margin-bottom: 20px;
 }
 
-.vip-tag {
+.vip-tag,
+.passroom-tag,
+.affiliate-tag {
     display: inline-block;
-    background-color: #f33;
-    color: white;
     font-weight: bold;
     padding: 5px 10px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    font-size: 14px;
+    border-radius: 999px;
+    margin: 0 8px 10px 0;
+    font-size: 12px;
+}
+
+.vip-tag {
+    background-color: #f33;
+    color: white;
+}
+
+.passroom-tag {
+    background: rgba(124, 58, 237, 0.12);
+    color: #7c3aed;
+}
+
+.affiliate-tag {
+    background: rgba(236, 72, 153, 0.12);
+    color: #be185d;
 }
 
 .property-title {

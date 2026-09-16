@@ -25,3 +25,7 @@ pnpm-debug.log*
 build/
 dist/
 coverage/
+
+# Large media files
+**/*.mov
+**/setup.mov

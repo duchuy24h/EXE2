@@ -224,6 +224,8 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 endDate: endDate,
                 images: resImages.images,
                 dateEnd,
+                isPassRoom: Boolean(values.isPassRoom),
+                isAffiliateDecor: Boolean(values.isAffiliateDecor),
             };
 
             await requestCreatePost(data);
@@ -422,6 +424,22 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                     </Row>
                 </Checkbox.Group>
             </Form.Item>
+
+            <Divider />
+
+            <Title level={5}>Dịch vụ bổ sung</Title>
+            <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12}>
+                    <Form.Item name="isPassRoom" valuePropName="checked" initialValue={false}>
+                        <Checkbox>Pass đồ trọ</Checkbox>
+                    </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                    <Form.Item name="isAffiliateDecor" valuePropName="checked" initialValue={false}>
+                        <Checkbox>Affiliate decor</Checkbox>
+                    </Form.Item>
+                </Col>
+            </Row>
 
             <Divider />
 

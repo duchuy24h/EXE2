@@ -3,7 +3,7 @@ import styles from './HomePage.module.scss';
 
 import CardBody from '../CardBody/CardBody';
 import { useState, useEffect } from 'react';
-import { requestGetNewPost, requestGetPosts, requestPostSuggest } from '../../config/request';
+import { requestGetNewPost, requestGetPassRooms, requestGetPosts, requestPostSuggest } from '../../config/request';
 
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
@@ -12,6 +12,7 @@ const cx = classNames.bind(styles);
 
 function HomePage() {
     const [dataPost, setDataPost] = useState([]);
+    const [dataPassRoom, setDataPassRoom] = useState([]);
 
     const categoryOptions = [
         { value: 'phong-tro', label: 'Phòng trọ' },
@@ -50,6 +51,7 @@ function HomePage() {
     const [category, setCategory] = useState(() => getQueryParam('category') || '');
     const [priceRange, setPriceRange] = useState(() => getQueryParam('priceRange') || '');
     const [areaRange, setAreaRange] = useState(() => getQueryParam('areaRange') || '');
+    const [passRoomKind, setPassRoomKind] = useState(() => getQueryParam('passRoomKind') || '');
     // Default typeNews to 'vip' if not in URL
     const [typeNews, setTypeNews] = useState(() => getQueryParam('typeNews'));
 
@@ -64,6 +66,7 @@ function HomePage() {
                 priceRange,
                 areaRange,
                 typeNews,
+                passRoomKind,
             };
             console.log('>>> Sending params to API:', params);
             const res = await requestGetPosts(params);
@@ -75,13 +78,14 @@ function HomePage() {
             if (priceRange) queryParams.set('priceRange', priceRange);
             if (areaRange) queryParams.set('areaRange', areaRange);
             if (typeNews) queryParams.set('typeNews', typeNews);
+            if (passRoomKind) queryParams.set('passRoomKind', passRoomKind);
 
             const queryString = queryParams.toString();
             const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
             window.history.pushState({ path: newUrl }, '', newUrl);
         };
         fetchData();
-    }, [category, priceRange, areaRange, typeNews]);
+    }, [category, priceRange, areaRange, typeNews, passRoomKind]);
 
     const [dataNewPost, setDataNewPost] = useState([]);
     const [dataPostSuggest, setDataPostSuggest] = useState([]);
@@ -95,6 +99,38 @@ function HomePage() {
         };
         fetchData();
     }, []);
+
+    useEffect(() => {
+        const fetchPassRoomData = async () => {
+            const params = passRoomKind ? { kind: passRoomKind } : {};
+            const res = await requestGetPassRooms(params);
+            setDataPassRoom(res.metadata || []);
+        };
+        fetchPassRoomData();
+    }, [passRoomKind]);
+
+    const featuredAffiliate = dataPassRoom.find((item) => item.kind === 'affiliate-decor') || dataPassRoom[0];
+    const [carouselIndex, setCarouselIndex] = useState(0);
+    const visiblePassRoomCards = dataPassRoom.slice(carouselIndex, carouselIndex + 3);
+
+    useEffect(() => {
+        if (dataPassRoom.length <= 3) return;
+        const interval = setInterval(() => {
+            setCarouselIndex((prev) => (prev + 3 >= dataPassRoom.length ? 0 : prev + 3));
+        }, 4800);
+        return () => clearInterval(interval);
+    }, [dataPassRoom.length]);
+
+    const moveCarousel = (direction) => {
+        if (!dataPassRoom.length) return;
+        setCarouselIndex((prev) => {
+            const size = 3;
+            const next = prev + direction * size;
+            if (next < 0) return Math.max(0, dataPassRoom.length - (dataPassRoom.length % size || size));
+            if (next >= dataPassRoom.length) return 0;
+            return next;
+        });
+    };
 
     return (
         <div className={cx('wrapper')}>
@@ -113,6 +149,63 @@ function HomePage() {
                         </button>
                     </div>
                 </div>
+
+                {dataPassRoom.length > 0 && (
+                    <div className={cx('feature-passroom')}>
+                        <div className={cx('feature-header')}>
+                            <div>
+                                <span className={cx('feature-label')}>Dịch vụ đặc biệt</span>
+                                <h2>Pass đồ trọ & Affiliate decor</h2>
+                            </div>
+                            <Link to="/pass-room" className={cx('feature-pill')}>Xem tất cả</Link>
+                        </div>
+
+                        {featuredAffiliate && (
+                            <Link to={`/pass-room/${featuredAffiliate._id}`} className={cx('feature-hero')}>
+                                <div className={cx('feature-heroImage')}>
+                                    <img src={featuredAffiliate.images?.[0]} alt={featuredAffiliate.title} />
+                                </div>
+                                <div className={cx('feature-heroContent')}>
+                                    <span className={cx('feature-badge')}>
+                                        {featuredAffiliate.kind === 'affiliate-decor' ? 'Affiliate decor' : 'Pass đồ trọ'}
+                                    </span>
+                                    <h3>{featuredAffiliate.title}</h3>
+                                    <p>{featuredAffiliate.description}</p>
+                                    <div className={cx('feature-meta')}>
+                                        <span>{featuredAffiliate.location}</span>
+                                        <strong>{featuredAffiliate.price?.toLocaleString('vi-VN')} VNĐ</strong>
+                                    </div>
+                                </div>
+                            </Link>
+                        )}
+
+                        <div className={cx('feature-carouselControls')}>
+                            <button type="button" onClick={() => moveCarousel(-1)}>←</button>
+                            <button type="button" onClick={() => moveCarousel(1)}>→</button>
+                        </div>
+
+                        <div className={cx('feature-grid')}>
+                            {visiblePassRoomCards.map((item) => (
+                                <Link to={`/pass-room/${item._id}`} className={cx('feature-card')} key={item._id || item.title}>
+                                    <div className={cx('feature-cardImage')}>
+                                        <img src={item.images?.[0]} alt={item.title} />
+                                    </div>
+                                    <div className={cx('feature-cardBody')}>
+                                        <span className={cx(item.kind === 'affiliate-decor' ? 'feature-cardTagDecor' : 'feature-cardTagPass')}>
+                                            {item.kind === 'affiliate-decor' ? 'Affiliate decor' : 'Pass đồ trọ'}
+                                        </span>
+                                        <h4>{item.title}</h4>
+                                        <p>{item.location}</p>
+                                        <div className={cx('feature-cardFooter')}>
+                                            <strong>{item.price?.toLocaleString('vi-VN')} VNĐ</strong>
+                                            <span>{item.area} m²</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className={cx('list-content')}>
                     {dataPost.map((post) => (
@@ -134,6 +227,26 @@ function HomePage() {
                                 {option.label}
                             </button>
                         ))}
+                    </div>
+                </div>
+
+                <div className={cx('filter-section')}>
+                    <h3>Dịch vụ đặc biệt</h3>
+                    <div className={cx('filter-list')}>
+                        <button
+                            type="button"
+                            className={cx('filter-chip', { active: passRoomKind === 'pass-room' })}
+                            onClick={() => toggleValue(passRoomKind, setPassRoomKind, 'pass-room')}
+                        >
+                            Pass đồ trọ
+                        </button>
+                        <button
+                            type="button"
+                            className={cx('filter-chip', { active: passRoomKind === 'affiliate-decor' })}
+                            onClick={() => toggleValue(passRoomKind, setPassRoomKind, 'affiliate-decor')}
+                        >
+                            Affiliate decor
+                        </button>
                     </div>
                 </div>
                 <div className={cx('filter-section')}>

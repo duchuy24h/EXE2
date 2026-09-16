@@ -1,9 +1,10 @@
 import { Layout, Menu, Avatar, Typography, Row, Col, Card, Divider, Button } from 'antd';
-import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined, AppstoreAddOutlined } from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
 import { useState } from 'react';
 import PersonalInfo from './Components/PersonalInfo/PersonalInfo';
 import ManagerPost from './Components/ManagerPost/ManagerPost';
+import PassRoomManager from './Components/PassRoom/PassRoomManager';
 import { useStore } from '../../hooks/useStore';
 import RechargeUser from './Components/RechargeUser/RechargeUser';
 import ChangePassword from './Components/ChangePassword/ChangePassword';
@@ -33,6 +34,11 @@ function InfoUser() {
             key: 'posts',
             icon: <FileTextOutlined />,
             label: 'Quản lý bài viết',
+        },
+        {
+            key: 'pass-room',
+            icon: <AppstoreAddOutlined />,
+            label: 'Pass đồ / Decor',
         },
         {
             key: 'recharge',
@@ -68,7 +74,6 @@ function InfoUser() {
                     <div
                         style={{
                             textAlign: 'center',
-                            padding: '0 20px 20px',
                             background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
                             margin: '-20px -20px 20px -20px',
                             padding: '30px 20px',
@@ -123,6 +128,7 @@ function InfoUser() {
                                 <Title level={3} style={{ margin: 0 }}>
                                     {selectedMenu === 'personal' && 'Thông tin cá nhân'}
                                     {selectedMenu === 'posts' && 'Quản lý bài viết'}
+                                    {selectedMenu === 'pass-room' && 'Pass đồ / Affiliate decor'}
                                     {selectedMenu === 'recharge' && 'Nạp tiền'}
                                     {selectedMenu === 'change-password' && 'Đổi mật khẩu'}
                                 </Title>
@@ -131,6 +137,7 @@ function InfoUser() {
                     >
                         {selectedMenu === 'personal' && <PersonalInfo />}
                         {selectedMenu === 'posts' && <ManagerPost />}
+                        {selectedMenu === 'pass-room' && <PassRoomManager />}
                         {selectedMenu === 'recharge' && <RechargeUser />}
                         {selectedMenu === 'change-password' && <ChangePassword />}
                     </Card>

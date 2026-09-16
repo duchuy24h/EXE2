@@ -119,6 +119,26 @@ export const requestCreatePost = async (data) => {
     return res.data;
 };
 
+export const requestCreatePassRoom = async (data) => {
+    const res = await request.post('/api/create-pass-room', data);
+    return res.data;
+};
+
+export const requestGetPassRooms = async (params) => {
+    const res = await request.get('/api/get-pass-rooms', { params });
+    return res.data;
+};
+
+export const requestGetPassRoomById = async (id) => {
+    const res = await request.get('/api/get-pass-room-by-id', { params: { id } });
+    return res.data;
+};
+
+export const requestPurchasePassRoom = async (data) => {
+    const res = await request.post('/api/purchase-pass-room', data);
+    return res.data;
+};
+
 export const requestGetNewPost = async () => {
     const res = await request.get('/api/get-new-post');
     return res.data;

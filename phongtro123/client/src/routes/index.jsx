@@ -8,6 +8,8 @@ import ForgotPassword from '../Pages/ForgotPassword/ForgotPassword';
 import AISearch from '../Pages/AISearch/AISearch';
 import Layout from '../Components/Layout/Layout';
 import HomePage from '../Components/HomePage/HomePage';
+import PassRoomPage from '../Pages/PassRoom/PassRoomPage';
+import PassRoomDetailPage from '../Pages/PassRoom/PassRoomDetailPage';
 
 export const publicRoutes = [
     {
@@ -16,6 +18,8 @@ export const publicRoutes = [
         children: [
             { path: '', element: <HomePage /> },
             { path: 'chi-tiet-tin-dang/:id', element: <DetailPost /> },
+            { path: 'pass-room', element: <PassRoomPage /> },
+            { path: 'pass-room/:id', element: <PassRoomDetailPage /> },
             { path: 'trang-ca-nhan', element: <InfoUser /> },
             { path: 'search/:value', element: <AISearch /> },
         ],

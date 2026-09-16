@@ -107,6 +107,8 @@ function DetailPost() {
                         <div className={cx('property-details')}>
                             <div className={cx('property-header')}>
                                 {post?.typeNews === 'vip' && <span className={cx('vip-tag')}>TIN VIP NỔI BẬT</span>}
+                                {post?.isPassRoom && <span className={cx('passroom-tag')}>Pass đồ trọ</span>}
+                                {post?.isAffiliateDecor && <span className={cx('affiliate-tag')}>Affiliate decor</span>}
                                 <h1 className={cx('property-title')}> {post?.title}</h1>
                                 <div className={cx('property-location')}>
                                     <span>{post?.location}</span>

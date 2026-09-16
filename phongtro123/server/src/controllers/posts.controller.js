@@ -36,6 +36,8 @@ class controllerPosts {
             endDate,
             typeNews,
             dateEnd,
+            isPassRoom,
+            isAffiliateDecor,
         } = req.body;
         if (
             !title ||
@@ -84,6 +86,8 @@ class controllerPosts {
             userId: id,
             endDate: endDate ? endDate : null,
             typeNews,
+            isPassRoom: Boolean(isPassRoom),
+            isAffiliateDecor: Boolean(isAffiliateDecor),
         });
         await modelUser.findByIdAndUpdate(id, { $inc: { balance: -pricePost.price } });
         return new Created({

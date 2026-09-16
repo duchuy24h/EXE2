@@ -307,6 +307,13 @@ function ManagerPost() {
                                     {selectedPost.typeNews === 'vip' ? 'VIP' : 'Thường'}
                                 </Tag>
                             </Descriptions.Item>
+                            <Descriptions.Item label="Dịch vụ thêm">
+                                <Space wrap>
+                                    {selectedPost.isPassRoom && <Tag color="purple">Pass đồ trọ</Tag>}
+                                    {selectedPost.isAffiliateDecor && <Tag color="magenta">Affiliate decor</Tag>}
+                                    {!selectedPost.isPassRoom && !selectedPost.isAffiliateDecor && <span>Không có</span>}
+                                </Space>
+                            </Descriptions.Item>
                             <Descriptions.Item label="Trạng thái">
                                 <Tag color={selectedPost.status === 'active' ? 'green' : 'orange'}>
                                     {selectedPost.status === 'active' ? 'Đã duyệt' : 'Chờ duyệt'}

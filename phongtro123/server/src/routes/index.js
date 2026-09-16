@@ -3,6 +3,7 @@ const postRoutes = require('./posts.routes');
 const paymentsRoutes = require('./payments.routes');
 const messengerRoutes = require('./messenger.routes');
 const favouriteRoutes = require('./favourite.routes');
+const passRoomRoutes = require('./passRoom.routes');
 
 const multer = require('multer');
 const path = require('path');
@@ -50,6 +51,9 @@ function routes(app) {
     app.get('/api/get-new-post', postRoutes);
     app.get('/api/get-post-vip', postRoutes);
     app.post('/api/delete-post', postRoutes);
+
+    app.post('/api/create-pass-room', passRoomRoutes);
+    app.get('/api/get-pass-rooms', passRoomRoutes);
 
     //// admin post
     app.get('/api/get-all-posts', postRoutes);

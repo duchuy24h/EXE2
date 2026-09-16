@@ -31,10 +31,14 @@ function CardBody({ post }) {
                 </div>
             </Link>
             <div className={cx('room-info')}>
-                <h2 className={cx('room-title')}>
-                    <HomeOutlined className={cx('icon')} />
-                    {post.title}
-                </h2>
+                <div className={cx('title-row')}>
+                    <h2 className={cx('room-title')}>
+                        <HomeOutlined className={cx('icon')} />
+                        {post.title}
+                    </h2>
+                    {post.kind === 'pass-room' && <span className={cx('badge-pass')}>Pass đồ trọ</span>}
+                    {post.kind === 'affiliate-decor' && <span className={cx('badge-decor')}>Affiliate decor</span>}
+                </div>
                 <div className={cx('room-meta')}>
                     <span className={cx('price')}>
                         <DollarOutlined className={cx('icon')} />
