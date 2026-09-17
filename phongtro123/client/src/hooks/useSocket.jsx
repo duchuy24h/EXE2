@@ -15,7 +15,7 @@ export const useSocket = () => {
     const socketRef = useRef();
 
     useEffect(() => {
-        socketRef.current = io(import.meta.env.VITE_SOCKET_URL, {
+        socketRef.current = io(import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin, {
             transports: ['websocket'],
             withCredentials: true,
         });

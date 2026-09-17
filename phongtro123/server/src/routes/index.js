@@ -54,6 +54,8 @@ function routes(app) {
 
     app.post('/api/create-pass-room', passRoomRoutes);
     app.get('/api/get-pass-rooms', passRoomRoutes);
+    app.get('/api/get-pass-room-by-id', passRoomRoutes);
+    app.post('/api/purchase-pass-room', passRoomRoutes);
 
     //// admin post
     app.get('/api/get-all-posts', postRoutes);

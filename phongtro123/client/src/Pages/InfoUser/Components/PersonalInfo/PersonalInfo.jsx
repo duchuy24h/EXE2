@@ -258,7 +258,7 @@ function PersonalInfo() {
                         showUploadList={false}
                         beforeUpload={beforeUpload}
                         onChange={handleAvatarChange}
-                        action="http://localhost:3000/api/upload-image"
+                        action={`${import.meta.env.VITE_API_URL || ''}/api/upload-image`}
                     >
                         <Button icon={<UploadOutlined />}>Tải ảnh lên</Button>
                     </Upload>

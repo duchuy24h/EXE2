@@ -19,7 +19,15 @@ const cors = require('cors');
 const path = require('path');
 const cookie = require('cookie');
 
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || origin === process.env.CLIENT_URL || /^https:\/\/.*\.ngrok-free\.dev$/.test(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS origin not allowed'));
+    },
+    credentials: true,
+}));
 
 const connectDB = require('./config/ConnectDB');
 const routes = require('./routes/index');
