@@ -42,16 +42,16 @@ const dataSource = [
     {
         key: '1',
         typeNews: 'Tin VIP',
-        '3 ngày': 50000,
-        '7 ngày': 315000,
-        '30 ngày': 1200000,
+        '3 ngày': 50,
+        '7 ngày': 315,
+        '30 ngày': 1200,
     },
     {
         key: '2',
         typeNews: 'Tin thường',
-        '3 ngày': 10000,
-        '7 ngày': 50000,
-        '30 ngày': 1000000,
+        '3 ngày': 10,
+        '7 ngày': 50,
+        '30 ngày': 1000,
     },
 ];
 
@@ -65,19 +65,19 @@ const columns = [
         title: '3 ngày',
         dataIndex: '3 ngày',
         key: '3 ngày',
-        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} VNĐ` : price),
+        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} Coin` : price),
     },
     {
         title: '7 ngày',
         dataIndex: '7 ngày',
         key: '7 ngày',
-        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} VNĐ` : price),
+        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} Coin` : price),
     },
     {
         title: '30 ngày',
         dataIndex: '30 ngày',
         key: '30 ngày',
-        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} VNĐ` : price),
+        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} Coin` : price),
     },
 ];
 
@@ -475,7 +475,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                     <Row gutter={16}>
                         <Col span={12}>
                             <Statistic
-                                title="Tạm tính (VNĐ)"
+                                title="Tạm tính (Coin)"
                                 value={estimatedCost > 0 ? estimatedCost : '-'}
                                 precision={0}
                                 formatter={(value) =>

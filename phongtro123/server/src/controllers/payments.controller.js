@@ -115,7 +115,8 @@ class PaymentsController {
             const result = orderInfo.split(' ')[2];
             const findUser = await modelUser.findOne({ _id: result });
             if (findUser) {
-                findUser.balance += Number(amount);
+                const coin = Number(amount) / 1000;
+                findUser.coin += coin
                 await findUser.save();
                 const socket = global.usersMap.get(findUser._id.toString());
                 if (socket) {
@@ -144,7 +145,9 @@ class PaymentsController {
             const result = vnp_OrderInfo.split(' ')[2];
             const findUser = await modelUser.findOne({ _id: result });
             if (findUser) {
-                findUser.balance += Number(vnp_Amount.slice(0, -2));
+                const amountVND = Number(vnp_Amount.slice(0, -2));
+                const coin = amountVND / 1000;
+                findUser.coin += coin;
                 await findUser.save();
                 const socket = global.usersMap.get(findUser._id.toString());
                 if (socket) {

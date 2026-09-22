@@ -12,7 +12,7 @@ const modelUser = new Schema(
         phone: { type: String, require: true },
         isAdmin: { type: Boolean, default: false },
         isActive: { type: Boolean, default: false },
-        balance: { type: Number, default: 0 },
+        coin: { type: Number, default: 0 },
         typeLogin: { type: String, enum: ['email', 'google'] },
     },
     {
