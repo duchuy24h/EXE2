@@ -124,8 +124,23 @@ export const requestCreatePassRoom = async (data) => {
     return res.data;
 };
 
-export const requestGetPassRooms = async (params) => {
-    const res = await request.get('/api/get-pass-rooms', { params });
+export const requestGetPassRooms = async (params = {}) => {
+    const filteredParams = Object.entries(params)
+        .filter(
+            ([, value]) =>
+                value !== undefined &&
+                value !== null &&
+                String(value).trim() !== ''
+        )
+        .reduce((acc, [key, value]) => {
+            acc[key] = String(value).trim();
+            return acc;
+        }, {});
+
+    const res = await request.get('/api/get-pass-rooms', {
+        params: filteredParams,
+    });
+
     return res.data;
 };
 

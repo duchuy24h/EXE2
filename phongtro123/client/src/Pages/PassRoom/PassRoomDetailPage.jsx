@@ -1,18 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button, message } from 'antd';
 import classNames from 'classnames/bind';
 import styles from './PassRoomDetailPage.module.scss';
 import { requestGetPassRoomById, requestPurchasePassRoom } from '../../config/request';
 import { useStore } from '../../hooks/useStore';
+import imgDefault from '../../assets/images/img_default.svg';
 
 const cx = classNames.bind(styles);
+
+function getSafeImages(item) {
+    if (!item || !Array.isArray(item.images)) return [];
+    return item.images.filter((url) => typeof url === 'string' && url.trim());
+}
+
+function handleImgError(e) {
+    if (e?.currentTarget) {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = imgDefault;
+    }
+}
 
 function PassRoomDetailPage() {
     const { id } = useParams();
     const { dataUser, fetchAuth } = useStore();
     const [item, setItem] = useState(null);
-    const [selectedImg, setSelectedImg] = useState('');
+    const [selectedImg, setSelectedImg] = useState(imgDefault);
     const [loading, setLoading] = useState(false);
 
     const fetchItem = async () => {
@@ -20,7 +33,8 @@ function PassRoomDetailPage() {
             const res = await requestGetPassRoomById(id);
             const data = res.metadata;
             setItem(data);
-            setSelectedImg(data.images?.[0] || '');
+            const images = getSafeImages(data);
+            setSelectedImg(images[0] || imgDefault);
         } catch (error) {
             message.error(error?.response?.data?.message || 'Không thể tải chi tiết');
         }
@@ -29,6 +43,8 @@ function PassRoomDetailPage() {
     useEffect(() => {
         if (id) fetchItem();
     }, [id]);
+
+    const safeImages = useMemo(() => getSafeImages(item), [item]);
 
     const handlePurchase = async () => {
         if (!dataUser?._id) {
@@ -60,20 +76,30 @@ function PassRoomDetailPage() {
             <div className={cx('content')}>
                 <div className={cx('gallery')}>
                     <div className={cx('mainImage')}>
-                        <img src={selectedImg} alt={item.title} />
+                        <img
+                            src={selectedImg || imgDefault}
+                            alt={item.title || 'Pass room'}
+                            onError={handleImgError}
+                        />
                     </div>
-                    <div className={cx('thumbs')}>
-                        {item.images?.map((img, idx) => (
-                            <button
-                                key={`${img}-${idx}`}
-                                type="button"
-                                onClick={() => setSelectedImg(img)}
-                                className={cx({ active: selectedImg === img })}
-                            >
-                                <img src={img} alt={item.title} />
-                            </button>
-                        ))}
-                    </div>
+                    {safeImages.length > 0 && (
+                        <div className={cx('thumbs')}>
+                            {safeImages.map((img, idx) => (
+                                <button
+                                    key={`${img}-${idx}`}
+                                    type="button"
+                                    onClick={() => setSelectedImg(img)}
+                                    className={cx({ active: selectedImg === img })}
+                                >
+                                    <img
+                                        src={img}
+                                        alt={`${item.title || 'Ảnh'} ${idx + 1}`}
+                                        onError={handleImgError}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className={cx('info')}>
@@ -99,7 +125,8 @@ function PassRoomDetailPage() {
                             </Button>
                         )}
                         <div className={cx('balance')}>
-                            Số dư hiện tại: <strong>{Number(dataUser?.balance || 0).toLocaleString('vi-VN')} VNĐ</strong>
+                            Số dư hiện tại:{' '}
+                            <strong>{Number(dataUser?.balance || 0).toLocaleString('vi-VN')} VNĐ</strong>
                         </div>
                     </div>
 
@@ -113,7 +140,11 @@ function PassRoomDetailPage() {
 
                     <div className={cx('seller')}>
                         <div className={cx('sellerAvatar')}>
-                            <img src={item.seller?.avatar || 'https://via.placeholder.com/80'} alt={item.seller?.fullName} />
+                            <img
+                                src={item.seller?.avatar || imgDefault}
+                                alt={item.seller?.fullName || 'Seller'}
+                                onError={handleImgError}
+                            />
                         </div>
                         <div>
                             <strong>{item.seller?.fullName || 'Chủ sở hữu'}</strong>

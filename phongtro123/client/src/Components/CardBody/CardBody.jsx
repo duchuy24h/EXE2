@@ -11,22 +11,40 @@ import dayjs from 'dayjs';
 
 const cx = classNames.bind(styles);
 
+function getSafeImages(post) {
+    if (!post || !Array.isArray(post.images)) return [];
+    return post.images.filter((url) => typeof url === 'string' && url.trim());
+}
+
+function handleImgError(e) {
+    if (e?.currentTarget) {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = imgDefault;
+    }
+}
+
 function CardBody({ post }) {
+    const images = getSafeImages(post);
+    const img0 = images[0] || imgDefault;
+    const img1 = images[1] || imgDefault;
+    const img2 = images[2] || imgDefault;
+    const img3 = images[3] || imgDefault;
+
     return (
         <div className={cx('list-item')}>
             <Link to={`/chi-tiet-tin-dang/${post._id}`}>
                 <div className={cx('parent')}>
                     <div className={cx('div1')}>
-                        <img src={post.images[0] || imgDefault} alt="" />
+                        <img src={img0} alt="" onError={handleImgError} />
                     </div>
                     <div className={cx('div2')}>
-                        <img src={post.images[1] || imgDefault} alt="" />
+                        <img src={img1} alt="" onError={handleImgError} />
                     </div>
                     <div className={cx('div3')}>
-                        <img src={post.images[2] || imgDefault} alt="" />
+                        <img src={img2} alt="" onError={handleImgError} />
                     </div>
                     <div className={cx('div4')}>
-                        <img src={post.images[3] || imgDefault} alt="" />
+                        <img src={img3} alt="" onError={handleImgError} />
                     </div>
                 </div>
             </Link>
@@ -42,7 +60,7 @@ function CardBody({ post }) {
                 <div className={cx('room-meta')}>
                     <span className={cx('price')}>
                         <DollarOutlined className={cx('icon')} />
-                        {post.price.toLocaleString()} VNĐ/tháng
+                        {Number(post.price || 0).toLocaleString()} VNĐ/tháng
                     </span>
                     <span className={cx('area')}>
                         <HomeOutlined className={cx('icon')} />
@@ -55,7 +73,7 @@ function CardBody({ post }) {
                 </div>
             </div>
             <div className={cx('user-info')}>
-                <img src={post.user?.avatar || imgDefault} alt="" />
+                <img src={post.user?.avatar || imgDefault} alt="" onError={handleImgError} />
                 <div className={cx('info-container')}>
                     <div className={cx('user-header')}>
                         <h4>{post.user?.fullName}</h4>

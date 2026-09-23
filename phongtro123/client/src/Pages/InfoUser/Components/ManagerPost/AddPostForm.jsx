@@ -4,7 +4,6 @@ import {
     Input,
     InputNumber,
     Select,
-    Upload,
     Button,
     message,
     Row,
@@ -15,28 +14,21 @@ import {
     AutoComplete,
     Table,
     Statistic,
+    Space,
 } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
 import { Editor } from '@tinymce/tinymce-react';
-import { requestCreatePost, requestUploadImages } from '../../../../config/request';
+import { requestCreatePost } from '../../../../config/request';
 
 const { Option } = Select;
 const { Title } = Typography;
 
 import axios from 'axios';
 import useDebounce from '../../../../hooks/useDebounce';
-
-// Helper function for Upload component
-const normFile = (e) => {
-    if (Array.isArray(e)) {
-        return e;
-    }
-    return e && e.fileList;
-};
 
 const dataSource = [
     {
@@ -81,7 +73,6 @@ const columns = [
     },
 ];
 
-// Checkbox options list (from ManagerPost.jsx for consistency, or define here)
 const optionLabels = [
     'Đầy đủ nội thất',
     'Có gác',
@@ -96,17 +87,30 @@ const optionLabels = [
     'Có hầm để xe',
 ];
 
-// Example suggestions for AutoComplete
-
 const durationOptions = [
     { label: '3 ngày', value: 3 },
     { label: '7 ngày', value: 7 },
     { label: '30 ngày', value: 30 },
 ];
 
+/** Validate URL is http(s) and looks like an image path or any valid absolute URL */
+const isValidImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim();
+    try {
+        const parsed = new URL(trimmed);
+        if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [form] = Form.useForm();
-    const [fileList, setFileList] = useState([]);
+    const [imageUrls, setImageUrls] = useState([]); // [{ id, url, error, loadError }]
+    const [urlInput, setUrlInput] = useState('');
+    const [urlInputError, setUrlInputError] = useState('');
     const [description, setDescription] = useState(initialValues?.description || '');
     const [valueSearch, setValueSearch] = useState('');
     const [dataSearch, setDataSearch] = useState([]);
@@ -114,20 +118,15 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [mapQuery, setMapQuery] = useState(initialValues?.address || 'Lăng Chủ tịch Hồ Chí Minh');
     const [dateEnd, setDateEnd] = useState(null);
 
-    // State for calculated cost
     const [estimatedCost, setEstimatedCost] = useState(0);
 
-    // Get form values to watch for changes
     const selectedDuration = Form.useWatch('duration', form);
     const selectedTypeNews = Form.useWatch('typeNews', form);
 
-    // Effect to recalculate cost based on duration and typeNews
     useEffect(() => {
         let calculatedCost = 0;
         if (selectedDuration && selectedTypeNews) {
-            // Corrected Find Logic:
             const selectedTier = dataSource.find((item) => {
-                // Check if the item matches the selected type ('vip' or 'normal')
                 const itemTypeKey = item.typeNews === 'Tin VIP' ? 'vip' : 'normal';
                 return itemTypeKey === selectedTypeNews;
             });
@@ -170,46 +169,96 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             setMapQuery(initialValues.address || 'Lăng Chủ tịch Hồ Chí Minh');
 
             if (initialValues.images && Array.isArray(initialValues.images)) {
-                setFileList(
-                    initialValues.images.map((img, index) => {
-                        if (img && typeof img === 'object' && img.uid) {
-                            return img;
-                        }
-                        const name =
-                            typeof img === 'string'
-                                ? img.substring(img.lastIndexOf('/') + 1)
-                                : `image-${index + 1}.png`;
-                        return {
-                            uid: `-${index + 1}`,
-                            name: name,
-                            status: 'done',
-                            url: typeof img === 'string' ? img : undefined,
-                            thumbUrl: typeof img === 'string' ? img : undefined,
-                        };
-                    }),
+                setImageUrls(
+                    initialValues.images
+                        .filter((img) => typeof img === 'string' && img.trim())
+                        .map((img, index) => ({
+                            id: `init-${index}-${Date.now()}`,
+                            url: img.trim(),
+                            error: !isValidImageUrl(img) ? 'URL không hợp lệ' : '',
+                            loadError: false,
+                        })),
                 );
             } else {
-                setFileList([]);
+                setImageUrls([]);
             }
         } else {
             form.resetFields();
-            setFileList([]);
+            setImageUrls([]);
+            setUrlInput('');
+            setUrlInputError('');
             setDescription('');
             setMapQuery('Lăng Chủ tịch Hồ Chí Minh');
             setEstimatedCost(0);
         }
     }, [initialValues, form]);
 
+    const handleAddImageUrl = () => {
+        const trimmed = urlInput.trim();
+        if (!trimmed) {
+            setUrlInputError('Vui lòng nhập URL ảnh');
+            return;
+        }
+        if (!isValidImageUrl(trimmed)) {
+            setUrlInputError('URL không hợp lệ. Chỉ chấp nhận http:// hoặc https://');
+            return;
+        }
+        if (imageUrls.some((item) => item.url === trimmed)) {
+            setUrlInputError('URL này đã được thêm');
+            return;
+        }
+        if (imageUrls.length >= 8) {
+            setUrlInputError('Tối đa 8 ảnh');
+            return;
+        }
+
+        setImageUrls((prev) => [
+            ...prev,
+            {
+                id: `url-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                url: trimmed,
+                error: '',
+                loadError: false,
+            },
+        ]);
+        setUrlInput('');
+        setUrlInputError('');
+    };
+
+    const handleRemoveImageUrl = (id) => {
+        setImageUrls((prev) => prev.filter((item) => item.id !== id));
+    };
+
+    const handleImageLoadError = (id) => {
+        setImageUrls((prev) =>
+            prev.map((item) => (item.id === id ? { ...item, loadError: true } : item)),
+        );
+    };
+
+    const handleImageLoadSuccess = (id) => {
+        setImageUrls((prev) =>
+            prev.map((item) => (item.id === id ? { ...item, loadError: false } : item)),
+        );
+    };
+
     const handleFinish = async (values) => {
         try {
-            const formData = new FormData();
-            fileList.forEach((file) => {
-                formData.append('images', file.originFileObj);
-            });
-            // Calculate endDate based on selected duration
+            if (imageUrls.length === 0) {
+                message.error('Vui lòng thêm ít nhất 1 URL ảnh');
+                return;
+            }
+
+            const invalidItems = imageUrls.filter((item) => !isValidImageUrl(item.url) || item.error);
+            if (invalidItems.length > 0) {
+                message.error('Có URL ảnh không hợp lệ. Vui lòng kiểm tra lại.');
+                return;
+            }
+
+            const images = imageUrls.map((item) => item.url.trim());
+
             const today = dayjs();
             const endDate = values.duration ? today.add(values.duration, 'day').utc().toISOString() : null;
-            const resImages = await requestUploadImages(formData);
+
             const data = {
                 title: values.title,
                 price: values.price,
@@ -222,7 +271,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 location: values.location,
                 typeNews: values.typeNews,
                 endDate: endDate,
-                images: resImages.images,
+                images,
                 dateEnd,
                 isPassRoom: Boolean(values.isPassRoom),
                 isAffiliateDecor: Boolean(values.isAffiliateDecor),
@@ -231,33 +280,31 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             await requestCreatePost(data);
             message.success(initialValues ? 'cập nhật bài viết thành công' : 'tạo bài viết thành công');
             form.resetFields();
-            setFileList([]);
+            setImageUrls([]);
+            setUrlInput('');
+            setUrlInputError('');
             setDescription('');
             setEstimatedCost(0);
             onFinish(data);
         } catch (error) {
-            message.error(error.response.data.message || 'Có lỗi xảy ra khi tạo/cập nhật bài viết.');
+            message.error(error?.response?.data?.message || 'Có lỗi xảy ra khi tạo/cập nhật bài viết.');
         }
     };
 
     const handleCancel = () => {
         form.resetFields();
-        setFileList([]);
+        setImageUrls([]);
+        setUrlInput('');
+        setUrlInputError('');
         setDescription('');
         setEstimatedCost(0);
         onCancel();
     };
 
-    const handleUploadChange = ({ fileList: newFileList }) => {
-        setFileList(newFileList);
-    };
-
-    // Handler for AutoComplete search input change
     const handleLocationSearch = (searchText) => {
         setValueSearch(searchText);
     };
 
-    // Handler for selecting an item from AutoComplete
     const handleLocationSelect = (selectedValue) => {
         form.setFieldsValue({ location: selectedValue });
         setMapQuery(selectedValue);
@@ -303,7 +350,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                             'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
                     }}
                     initialValue="Mô tả phòng trọ"
-                    onEditorChange={(content, editor) => setDescription(content)}
+                    onEditorChange={(content) => setDescription(content)}
                 />
             </div>
 
@@ -391,24 +438,110 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
 
             <Divider />
 
-            <Title level={5}>Hình ảnh</Title>
-            <Form.Item name="images" valuePropName="fileList" getValueFromEvent={normFile}>
-                <Upload
-                    listType="picture-card"
-                    multiple
-                    beforeUpload={() => false}
-                    fileList={fileList}
-                    onChange={handleUploadChange}
-                    accept="image/*"
-                >
-                    {fileList.length >= 8 ? null : (
-                        <div>
-                            <UploadOutlined />
-                            <div style={{ marginTop: 8 }}>Tải ảnh lên</div>
-                        </div>
-                    )}
-                </Upload>
-            </Form.Item>
+            <Title level={5}>Hình ảnh (URL)</Title>
+            <div className="image-url-section" style={{ marginBottom: 24 }}>
+                <Space.Compact style={{ width: '100%', marginBottom: 8 }}>
+                    <Input
+                        prefix={<LinkOutlined />}
+                        placeholder="Dán URL ảnh (https://...)"
+                        value={urlInput}
+                        onChange={(e) => {
+                            setUrlInput(e.target.value);
+                            setUrlInputError('');
+                        }}
+                        onPressEnter={(e) => {
+                            e.preventDefault();
+                            handleAddImageUrl();
+                        }}
+                        status={urlInputError ? 'error' : undefined}
+                    />
+                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAddImageUrl}>
+                        Thêm
+                    </Button>
+                </Space.Compact>
+                {urlInputError && (
+                    <div style={{ color: '#ff4d4f', fontSize: 13, marginBottom: 12 }}>{urlInputError}</div>
+                )}
+                <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 12 }}>
+                    Nhập URL ảnh công khai (http/https). Tối đa 8 ảnh. Không upload file lên server.
+                </div>
+
+                {imageUrls.length > 0 && (
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                            gap: 12,
+                        }}
+                    >
+                        {imageUrls.map((item) => (
+                            <div
+                                key={item.id}
+                                style={{
+                                    border: item.loadError || item.error ? '1px solid #ff4d4f' : '1px solid #d9d9d9',
+                                    borderRadius: 8,
+                                    overflow: 'hidden',
+                                    background: '#fafafa',
+                                    position: 'relative',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: '100%',
+                                        height: 110,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: '#f0f0f0',
+                                    }}
+                                >
+                                    {item.loadError ? (
+                                        <span style={{ color: '#ff4d4f', fontSize: 12, padding: 8, textAlign: 'center' }}>
+                                            Không tải được ảnh
+                                        </span>
+                                    ) : (
+                                        <img
+                                            src={item.url}
+                                            alt="preview"
+                                            style={{ width: '100%', height: 110, objectFit: 'cover' }}
+                                            onError={() => handleImageLoadError(item.id)}
+                                            onLoad={() => handleImageLoadSuccess(item.id)}
+                                        />
+                                    )}
+                                </div>
+                                <div style={{ padding: '6px 8px' }}>
+                                    <div
+                                        style={{
+                                            fontSize: 11,
+                                            color: '#595959',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            marginBottom: 6,
+                                        }}
+                                        title={item.url}
+                                    >
+                                        {item.url}
+                                    </div>
+                                    {item.error && (
+                                        <div style={{ color: '#ff4d4f', fontSize: 11, marginBottom: 4 }}>{item.error}</div>
+                                    )}
+                                    <Button
+                                        type="link"
+                                        danger
+                                        size="small"
+                                        icon={<DeleteOutlined />}
+                                        onClick={() => handleRemoveImageUrl(item.id)}
+                                        style={{ padding: 0 }}
+                                    >
+                                        Xóa
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             <Divider />
 

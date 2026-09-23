@@ -199,3 +199,213 @@
         grid-template-columns: 1fr;
     }
 }
+
+.filterPanel {
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.filterHeader {
+    margin-bottom: 20px;
+
+    h2 {
+        margin: 0 0 6px;
+        color: #1a2333;
+        font-size: 24px;
+    }
+
+    p {
+        margin: 0;
+        color: #64748b;
+        font-size: 14px;
+    }
+}
+
+.filterGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+
+    label {
+        color: #334155;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    input,
+    select {
+        width: 100%;
+        min-height: 42px;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border: 1px solid #dbe2ea;
+        border-radius: 10px;
+        outline: none;
+        background: #fff;
+        color: #1e293b;
+        font-size: 14px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+    }
+}
+
+.filterActions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.filterButton,
+.resetButton,
+.emptyResetButton {
+    border: none;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.filterButton {
+    color: #fff;
+    background: linear-gradient( 135deg, #0ea5e9, #8b5cf6 );
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+}
+
+.resetButton {
+    background: #f1f5f9;
+    color: #475569;
+
+    &:hover:not(:disabled) {
+        background: #e2e8f0;
+    }
+}
+
+    .filterButton:disabled,
+    .resetButton:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+.loading {
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.loadingSpinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.emptyState {
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 20px;
+    background: #f8fafc;
+
+    h3 {
+        margin: 12px 0 8px;
+        color: #334155;
+        font-size: 22px;
+    }
+
+    p {
+        margin: 0 0 18px;
+        max-width: 520px;
+        color: #64748b;
+        line-height: 1.6;
+    }
+}
+
+.emptyIcon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #eef2ff;
+    font-size: 24px;
+}
+
+.emptyResetButton {
+    background: #6366f1;
+    color: #fff;
+
+    &:hover {
+        transform: translateY(-1px);
+    }
+}
+
+.errorState {
+    padding: 18px;
+    margin-bottom: 20px;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    background: #fef2f2;
+    color: #b91c1c;
+    text-align: center;
+    font-weight: 600;
+}
+
+@media (max-width: 1000px) {
+    .filterGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .filterPanel {
+        padding: 18px;
+    }
+
+    .filterGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .filterActions {
+        flex-direction: column;
+
+        button {
+            width: 100%;
+        }
+    }
+}
