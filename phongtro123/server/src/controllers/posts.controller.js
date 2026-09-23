@@ -8,15 +8,15 @@ const SendMailApprove = require('../utils/SendMail/SendMailApprove');
 const SendMailReject = require('../utils/SendMail/SendMailReject');
 
 const pricePostVip = [
-    { date: 3, price: 50000 },
-    { date: 7, price: 315000 },
-    { date: 30, price: 1200000 },
+    { date: 3, price: 50 },
+    { date: 7, price: 315 },
+    { date: 30, price: 1200 },
 ];
 
 const pricePostNormal = [
-    { date: 3, price: 10000 },
-    { date: 7, price: 60000 },
-    { date: 30, price: 1000000 },
+    { date: 3, price: 10 },
+    { date: 7, price: 60 },
+    { date: 30, price: 100 },
 ];
 
 class controllerPosts {
@@ -68,7 +68,7 @@ class controllerPosts {
                 : pricePostNormal.find((item) => item.date === dateEnd);
 
         if (user.balance < pricePost.price) {
-            throw new BadRequestError('Số dư không đủ');
+            throw new BadRequestError('Số Coin không đủ');
         }
 
         const post = await modelPost.create({
@@ -89,7 +89,7 @@ class controllerPosts {
             isPassRoom: Boolean(isPassRoom),
             isAffiliateDecor: Boolean(isAffiliateDecor),
         });
-        await modelUser.findByIdAndUpdate(id, { $inc: { balance: -pricePost.price } });
+        await modelUser.findByIdAndUpdate(id, { $inc: { coin: -pricePost.price } });
         return new Created({
             message: 'Post created successfully',
             metadata: post,
@@ -145,7 +145,7 @@ class controllerPosts {
         const data = await Promise.all(
             dataPost.map(async (item) => {
                 const user = await modelUser.findById(item.userId);
-                return { ...item._doc, user: { _id: user._id, fullName: user.fullName, avatar: user.avatar } };
+                return { ...item._doc, user: { _id: user._id, fullName: item.username, avatar: user.avatar } };
             }),
         );
 
@@ -174,10 +174,10 @@ class controllerPosts {
         }
         const dataUser = {
             _id: findUser._id,
-            username: findUser.fullName,
+            username: data.username,
             avatar: findUser.avatar,
             createdAt: findUser.createdAt,
-            phone: findUser.phone,
+            phone: data.phone,
             lengthPost,
             status: statusUser,
         };

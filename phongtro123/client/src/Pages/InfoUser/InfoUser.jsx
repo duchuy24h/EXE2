@@ -101,7 +101,7 @@ function InfoUser() {
                             </Col>
                             <Col span={24}>
                                 <Text style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
-                                    Số dư : {dataUser?.balance?.toLocaleString()} VNĐ
+                                    Số dư : {dataUser?.balance?.toLocaleString()} Coin
                                 </Text>
                             </Col>
                         </Row>

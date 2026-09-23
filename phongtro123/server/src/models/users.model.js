@@ -15,6 +15,7 @@ const modelUser = new Schema(
         emailVerified: { type: Boolean, default: false },
         roommateModeEnabled: { type: Boolean, default: false },
         balance: { type: Number, default: 0 },
+        coin: { type: Number, default: 0 },
         typeLogin: { type: String, enum: ['email', 'google'] },
         roommateProfile: {
             bio: { type: String, default: '' },

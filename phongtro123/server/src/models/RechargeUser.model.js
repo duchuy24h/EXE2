@@ -5,7 +5,8 @@ const Schema = mongoose.Schema;
 const modelRechargeUser = new Schema(
     {
         userId: { type: String, require: true, ref: 'user' },
-        amount: { type: Number, require: true },
+        amountVND: { type: Number, required: true },
+        coin: { type: Number, required: true },
         typePayment: { type: String, require: true },
         status: { type: String, require: true },
     },
