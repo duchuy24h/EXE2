@@ -1,54 +1,56 @@
-<svg width="760" height="220" viewBox="0 0 760 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="980" height="380" viewBox="0 0 980 380" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="roofLeft" x1="61" y1="56" x2="173" y2="170" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2BB7D5"/>
-      <stop offset="1" stop-color="#1A9DD0"/>
+    <linearGradient id="roofGrad" x1="0" y1="40" x2="420" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38D778"/>
+      <stop offset="1" stop-color="#0CA05E"/>
     </linearGradient>
-    <linearGradient id="roofRight" x1="213" y1="44" x2="372" y2="180" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F39A36"/>
-      <stop offset="1" stop-color="#F17C2D"/>
+    <linearGradient id="houseGrad" x1="100" y1="110" x2="390" y2="310" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#40D67D"/>
+      <stop offset="1" stop-color="#1BAA68"/>
     </linearGradient>
-    <linearGradient id="roofBottom" x1="126" y1="90" x2="318" y2="195" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#75CD68"/>
-      <stop offset="1" stop-color="#3BB86B"/>
-    </linearGradient>
-    <linearGradient id="textGrad" x1="255" y1="44" x2="700" y2="147" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#21B6D9"/>
-      <stop offset="0.5" stop-color="#F29A38"/>
-      <stop offset="1" stop-color="#6BCB67"/>
+    <linearGradient id="textGrad" x1="410" y1="20" x2="900" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1CAD68"/>
+      <stop offset="0.5" stop-color="#2ED67B"/>
+      <stop offset="1" stop-color="#0F8E5D"/>
     </linearGradient>
   </defs>
 
-  <g transform="translate(18,10)">
-    <path d="M40 118L119 35L195 118H40Z" fill="url(#roofLeft)"/>
-    <path d="M166 118L248 35L328 118H166Z" fill="url(#roofRight)"/>
-    <path d="M110 118L188 35L276 118H110Z" fill="url(#roofBottom)"/>
+  <g transform="translate(20,20)">
+    <path d="M75 150L245 25L415 150H75Z" fill="url(#roofGrad)"/>
+    <path d="M120 150L245 55L370 150H120Z" fill="#23C765" opacity="0.72"/>
+    <path d="M62 150H428V275C428 316.421 394.421 350 353 350H137C95.5786 350 62 316.421 62 275V150Z" fill="url(#houseGrad)"/>
 
-    <path d="M56 118H288V181C288 190.389 280.389 198 271 198H73C63.6112 198 56 190.389 56 181V118Z" fill="url(#roofBottom)"/>
+    <g opacity="0.35">
+      <rect x="125" y="170" width="54" height="60" rx="8" fill="#F4FFF8"/>
+      <rect x="205" y="170" width="54" height="60" rx="8" fill="#F4FFF8"/>
+      <rect x="285" y="170" width="54" height="60" rx="8" fill="#F4FFF8"/>
+      <rect x="365" y="170" width="54" height="60" rx="8" fill="#F4FFF8"/>
+    </g>
 
-    <path d="M86 117L135 72L161 72L161 117H86Z" fill="#F5F7F9" opacity="0.18"/>
-    <path d="M200 117L247 72L273 72L273 117H200Z" fill="#F5F7F9" opacity="0.18"/>
+    <g>
+      <circle cx="166" cy="205" r="28" fill="#F4FFF8"/>
+      <path d="M132 260C132 233.49 154.49 212 181 212H191C217.51 212 240 233.49 240 260V294H132V260Z" fill="#F4FFF8"/>
 
-    <circle cx="125" cy="122" r="15" fill="#F5F7F9"/>
-    <circle cx="162" cy="122" r="15" fill="#F5F7F9"/>
-    <circle cx="199" cy="122" r="15" fill="#F5F7F9"/>
+      <circle cx="249" cy="205" r="28" fill="#F4FFF8"/>
+      <path d="M215 260C215 233.49 237.49 212 264 212H274C300.51 212 323 233.49 323 260V294H215V260Z" fill="#F4FFF8"/>
 
-    <path d="M136 156C136 141.641 147.641 130 162 130C176.359 130 188 141.641 188 156V178H136V156Z" fill="#F5F7F9"/>
-    <path d="M119 156C119 141.641 129.643 130 144 130H160V178H119V156Z" fill="#F5F7F9" opacity="0.9"/>
-    <path d="M196 156C196 141.641 206.643 130 221 130H237V178H196V156Z" fill="#F5F7F9" opacity="0.9"/>
+      <circle cx="332" cy="205" r="28" fill="#F4FFF8"/>
+      <path d="M298 260C298 233.49 320.49 212 347 212H357C383.51 212 406 233.49 406 260V294H298V260Z" fill="#F4FFF8"/>
+    </g>
 
-    <path d="M172 96H230V123H172V96Z" fill="#F5F7F9" opacity="0.82"/>
+    <g opacity="0.9">
+      <path d="M225 120L245 92L265 120H225Z" fill="#EAFEF3"/>
+      <path d="M202 130L221 108L240 130H202Z" fill="#EAFEF3" opacity="0.85"/>
+      <path d="M270 130L289 108L308 130H270Z" fill="#EAFEF3" opacity="0.85"/>
+    </g>
 
-    <circle cx="183" cy="112" r="3.5" fill="#2BA7C9"/>
-    <circle cx="214" cy="112" r="3.5" fill="#F39A36"/>
-    <circle cx="245" cy="112" r="3.5" fill="#75CD68"/>
-
-    <circle cx="154" cy="186" r="7" fill="#F39A36"/>
-    <circle cx="189" cy="186" r="7" fill="#149EC3"/>
-    <circle cx="223" cy="186" r="7" fill="#73C867"/>
+    <g>
+      <path d="M228 48L240 48L246 32L252 48L264 48L254 56L260 72L246 62L232 72L238 56L228 48Z" fill="#EEFFF4"/>
+      <path d="M290 64L302 64L308 48L314 64L326 64L316 72L322 88L308 78L294 88L300 72L290 64Z" fill="#EEFFF4" opacity="0.9"/>
+    </g>
   </g>
 
-  <g>
-    <text x="335" y="140" font-size="92" font-weight="800" letter-spacing="-3" fill="url(#textGrad)" font-family="Arial, Helvetica, sans-serif">homehub</text>
+  <g transform="translate(440,72)">
+    <text x="0" y="130" font-size="200" font-weight="900" letter-spacing="-8" fill="url(#textGrad)" font-family="Arial, Helvetica, sans-serif" textLength="510" lengthAdjust="spacingAndGlyphs">homiehub</text>
   </g>
 </svg>

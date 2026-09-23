@@ -23,18 +23,18 @@
 }
 
 body {
-    background-color: #fdf5ed;
-    color: #333;
+    background: linear-gradient(180deg, #f5f5f3 0%, #edf8f0 100%);
+    color: #123f32;
     line-height: 1.6;
 }
 
 :root {
-    --primary-color: #1aa3c8;
-    --secondary-color: #f29a38;
-    --accent-color: #68c76d;
-    --background-color: #f6f7f2;
-    --text-color: #1f2d3d;
-    --shadow-color: rgba(34, 101, 122, 0.15);
+    --primary-color: #1ea66a;
+    --secondary-color: #39d77a;
+    --accent-color: #8be5a4;
+    --background-color: #f6faf7;
+    --text-color: #123f32;
+    --shadow-color: rgba(30, 133, 89, 0.14);
     --transition-speed: 0.3s;
 }
 

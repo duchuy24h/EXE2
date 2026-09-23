@@ -630,15 +630,18 @@ function RoommateDiscover() {
                             height: 100,
                             borderRadius: '50%',
                             border: 'none',
-                            background: liked ? '#f4d445' : '#f2f2f2',
-                            color: '#111',
-                            fontSize: 42,
+                            background: liked ? '#dff7eb' : '#f2f2f2',
+                            color: '#0a8f5c',
+                            fontSize: 38,
                             cursor: 'pointer',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            lineHeight: 1,
                         }}
-                        aria-label="like"
+                        aria-label="match"
                     >
-                        ❤
+                        🤝
                     </button>
                 </div>
 
