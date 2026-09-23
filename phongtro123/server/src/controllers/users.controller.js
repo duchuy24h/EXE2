@@ -6,6 +6,7 @@ const modelKeyWordSearch = require('../models/keyWordSearch.model');
 const modelOtp = require('../models/otp.model');
 
 const sendMailForgotPassword = require('../utils/SendMail/sendMailForgotPassword');
+const sendMailVerifyRoommate = require('../utils/SendMail/sendMailVerifyRoommate');
 const { BadRequestError } = require('../core/error.response');
 const { createApiKey, createToken, createRefreshToken, verifyToken } = require('../services/tokenSevices');
 const { Created, OK } = require('../core/success.response');
@@ -38,6 +39,7 @@ class controllerUsers {
                 password: passwordHash,
                 typeLogin: 'email',
                 phone,
+                isActive: true,
             });
             await newUser.save();
             await createApiKey(newUser._id);
@@ -84,6 +86,12 @@ class controllerUsers {
         if (!checkPassword) {
             throw new BadRequestError('Tài khoản hoặc mật khẩu không chính xác');
         }
+
+        if (user.isActive === false) {
+            user.isActive = true;
+            await user.save();
+        }
+
         await createApiKey(user._id);
         const token = await createToken({ id: user._id });
         const refreshToken = await createRefreshToken({ id: user._id });
@@ -118,6 +126,10 @@ class controllerUsers {
         const dataToken = jwtDecode(credential);
         const user = await modelUser.findOne({ email: dataToken.email });
         if (user) {
+            if (user.isActive === false) {
+                user.isActive = true;
+                await user.save();
+            }
             await createApiKey(user._id);
             const token = await createToken({ id: user._id });
             const refreshToken = await createRefreshToken({ id: user._id });
@@ -145,6 +157,7 @@ class controllerUsers {
                 fullName: dataToken.name,
                 email: dataToken.email,
                 typeLogin: 'google',
+                isActive: true,
             });
             await newUser.save();
             await createApiKey(newUser._id);
@@ -472,6 +485,67 @@ class controllerUsers {
         new OK({ message: 'Cập nhật thông tin thành công', metadata: user }).send(res);
     }
 
+    async saveRoommateProfile(req, res) {
+        const { id } = req.user;
+        const {
+            bio,
+            location,
+            age,
+            gender,
+            studentStatus,
+            budget,
+            preferredGender,
+            lifestyle,
+            interests,
+            images,
+            distanceRadius,
+            preferences,
+            isLookingForRoommate,
+            avatar,
+        } = req.body;
+
+        const user = await modelUser.findById(id);
+        if (!user) {
+            throw new BadRequestError('Người dùng không tồn tại');
+        }
+
+        const profileImages = Array.isArray(images) ? images.filter(Boolean) : user.roommateProfile?.images || [];
+
+        user.roommateProfile = {
+            ...user.roommateProfile,
+            bio: bio || user.roommateProfile?.bio || '',
+            location: location || user.roommateProfile?.location || user.address || '',
+            age: Number(age || user.roommateProfile?.age || 22),
+            gender: gender || user.roommateProfile?.gender || 'Khác',
+            studentStatus: studentStatus || user.roommateProfile?.studentStatus || 'Sinh viên',
+            budget: Number(budget || user.roommateProfile?.budget || 0),
+            preferredGender: preferredGender || user.roommateProfile?.preferredGender || 'Tất cả',
+            lifestyle: Array.isArray(lifestyle) ? lifestyle : user.roommateProfile?.lifestyle || [],
+            interests: Array.isArray(interests) ? interests : user.roommateProfile?.interests || [],
+            images: profileImages,
+            distanceRadius: Number(distanceRadius || user.roommateProfile?.distanceRadius || 20),
+            preferences: Array.isArray(preferences) ? preferences : user.roommateProfile?.preferences || [],
+            isLookingForRoommate: typeof isLookingForRoommate === 'boolean' ? isLookingForRoommate : true,
+        };
+
+        user.roommateModeEnabled = true;
+        user.isActive = true;
+        const primaryAvatar = avatar || profileImages[0] || user.avatar;
+        if (primaryAvatar) {
+            user.avatar = primaryAvatar;
+        }
+        if (location) {
+            user.address = location;
+        }
+
+        await user.save();
+
+        return new OK({
+            message: 'Lưu hồ sơ ghép trọ thành công',
+            metadata: user.roommateProfile,
+        }).send(res);
+    }
+
     async getUsers(req, res) {
         const dataUser = await modelUser.find();
         const data = await Promise.all(
@@ -609,6 +683,77 @@ class controllerUsers {
             await modelKeyWordSearch.create({ title, count: 1 });
         }
         return new OK({ message: 'Thêm từ khóa tìm kiếm thành công' }).send(res);
+    }
+
+    async sendRoommateOtp(req, res) {
+        const { email } = req.body;
+        const user = await modelUser.findById(req.user.id);
+
+        if (!user) {
+            throw new BadRequestError('Người dùng không tồn tại');
+        }
+
+        const targetEmail = email || user.email;
+        if (!targetEmail) {
+            throw new BadRequestError('Vui lòng nhập email để xác minh');
+        }
+
+        const otp = await otpGenerator.generate(6, {
+            digits: true,
+            lowerCaseAlphabets: false,
+            upperCaseAlphabets: false,
+            specialChars: false,
+        });
+
+        const saltRounds = 10;
+        const hashOtp = bcrypt.hashSync(otp, saltRounds);
+
+        await modelOtp.create({
+            email: targetEmail,
+            otp: hashOtp,
+            type: 'verifyAccount',
+        });
+
+        await sendMailVerifyRoommate(targetEmail, otp);
+
+        return new OK({
+            message: 'Mã OTP xác minh email đã được gửi',
+            metadata: { email: targetEmail },
+        }).send(res);
+    }
+
+    async verifyRoommateOtp(req, res) {
+        const { otp } = req.body;
+        const user = await modelUser.findById(req.user.id);
+
+        if (!user) {
+            throw new BadRequestError('Người dùng không tồn tại');
+        }
+
+        if (!otp) {
+            throw new BadRequestError('Vui lòng nhập mã OTP');
+        }
+
+        const latestOtp = await modelOtp.findOne({ email: user.email }).sort({ createdAt: -1 });
+        if (!latestOtp) {
+            throw new BadRequestError('Mã OTP không tồn tại hoặc đã hết hạn');
+        }
+
+        const isMatch = bcrypt.compareSync(otp, latestOtp.otp);
+        if (!isMatch) {
+            throw new BadRequestError('Mã OTP không chính xác');
+        }
+
+        user.emailVerified = true;
+        user.roommateModeEnabled = true;
+        user.isActive = true;
+        await user.save();
+        await modelOtp.deleteOne({ _id: latestOtp._id });
+
+        return new OK({
+            message: 'Xác minh email thành công. Bạn có thể dùng tính năng tìm bạn ở ghép',
+            metadata: { emailVerified: true, roommateModeEnabled: true },
+        }).send(res);
     }
 
     async forgotPassword(req, res) {

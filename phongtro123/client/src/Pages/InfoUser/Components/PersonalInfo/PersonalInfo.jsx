@@ -166,7 +166,16 @@ function PersonalInfo() {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginBottom: '16px' }}>
+                {dataUser?.emailVerified && (
+                    <Button
+                        type="default"
+                        icon={<HeartOutlined />}
+                        onClick={() => (window.location.href = '/roommate/onboarding?edit=1')}
+                    >
+                        Sửa bio ghép trọ
+                    </Button>
+                )}
                 <Button type="primary" icon={<EditOutlined />} onClick={handleEdit}>
                     Chỉnh sửa thông tin
                 </Button>

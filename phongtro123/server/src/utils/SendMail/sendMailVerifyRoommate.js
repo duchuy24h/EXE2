@@ -1,15 +1,15 @@
 const createMailer = require('./createMailer');
 require('dotenv').config();
 
-const SendMailForgotPassword = async (email, otp) => {
+const SendMailVerifyRoommate = async (email, otp) => {
     try {
         const transport = await createMailer();
 
         const info = await transport.sendMail({
             from: `"phongtro123" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: 'Yêu cầu đặt lại mật khẩu',
-            text: `Mã OTP để đặt lại mật khẩu của bạn là: ${otp}`,
+            subject: 'Xác minh email để dùng tính năng tìm bạn ở ghép',
+            text: `Mã OTP để xác minh email của bạn là: ${otp}`,
             html: `
             <!DOCTYPE html>
             <html lang="vi">
@@ -32,7 +32,7 @@ const SendMailForgotPassword = async (email, otp) => {
                         box-shadow: 0 6px 12px rgba(0,0,0,0.1);
                     }
                     .header {
-                        background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+                        background: linear-gradient(135deg, #2d3436, #636e72);
                         padding: 30px;
                         color: #ffffff;
                         text-align: center;
@@ -52,11 +52,11 @@ const SendMailForgotPassword = async (email, otp) => {
                     .otp-box {
                         text-align: center;
                         background-color: #f1f2f6;
-                        border: 1px dashed #6c5ce7;
+                        border: 1px dashed #2d3436;
                         padding: 20px;
                         font-size: 24px;
                         font-weight: bold;
-                        color: #6c5ce7;
+                        color: #2d3436;
                         border-radius: 10px;
                         letter-spacing: 4px;
                     }
@@ -72,18 +72,15 @@ const SendMailForgotPassword = async (email, otp) => {
             <body>
                 <div class="container">
                     <div class="header">
-                        <h2>Yêu cầu đặt lại mật khẩu</h2>
+                        <h2>Xác minh email</h2>
                     </div>
                     <div class="content">
                         <div class="message">
-                            Bạn hoặc ai đó đã yêu cầu đặt lại mật khẩu cho tài khoản sử dụng địa chỉ email này.
-                        </div>
-                        <div class="message">
-                            Vui lòng sử dụng mã OTP bên dưới để xác nhận và đặt lại mật khẩu:
+                            Bạn đang kích hoạt tính năng tìm bạn ở ghép. Dùng mã OTP bên dưới để xác minh email.
                         </div>
                         <div class="otp-box">${otp}</div>
                         <div class="message">
-                            Nếu bạn không yêu cầu điều này, vui lòng bỏ qua email này.
+                            Mã OTP có hiệu lực trong vài phút. Nếu bạn không thực hiện thao tác này, hãy bỏ qua email.
                         </div>
                     </div>
                     <div class="footer">
@@ -96,10 +93,10 @@ const SendMailForgotPassword = async (email, otp) => {
             `,
         });
 
-        console.log('Forgot password email sent:', info.messageId);
+        console.log('Roommate email verification sent:', info.messageId);
     } catch (error) {
-        console.log('Error sending forgot password email:', error);
+        console.log('Error sending roommate verification email:', error);
     }
 };
 
-module.exports = SendMailForgotPassword;
+module.exports = SendMailVerifyRoommate;

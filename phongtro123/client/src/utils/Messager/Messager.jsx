@@ -33,20 +33,16 @@ function Messager({ user, setUsersMessage, usersMessage }) {
         const fetchMessages = async () => {
             try {
                 setLoading(true);
-                const data = {
-                    receiverId: user.id,
-                };
+                const data = { receiverId: user.id };
                 const res = await requestGetMessages(data);
                 setDataMessages(res.metadata || []);
 
-                // Kiểm tra xem có tin nhắn chưa đọc không
-                const unread = res.metadata.filter(
+                const unread = (res.metadata || []).filter(
                     (msg) => msg.senderId === user.id && msg.receiverId === dataUser._id && !msg.isRead,
                 );
 
                 if (unread.length > 0) {
                     setUnreadMessages(unread);
-                    // Đánh dấu tất cả tin nhắn từ người này là đã đọc
                     await markAllAsRead();
                 }
             } catch (error) {
@@ -60,11 +56,9 @@ function Messager({ user, setUsersMessage, usersMessage }) {
             fetchMessages();
         }
 
-        // Thiết lập khi có tin nhắn mới
         if (user.messages && user.messages.length > 0) {
             setDataMessages(user.messages);
 
-            // Kiểm tra tin nhắn chưa đọc
             const unread = user.messages.filter(
                 (msg) => msg.senderId === user.id && msg.receiverId === dataUser._id && !msg.isRead,
             );
@@ -74,7 +68,7 @@ function Messager({ user, setUsersMessage, usersMessage }) {
                 markAllAsRead();
             }
         }
-    }, [user.id, dataUser._id]);
+    }, [user.id, dataUser._id, user.messages]);
 
     // Hàm đánh dấu tất cả tin nhắn là đã đọc
     const markAllAsRead = async () => {

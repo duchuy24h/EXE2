@@ -4,6 +4,8 @@ const paymentsRoutes = require('./payments.routes');
 const messengerRoutes = require('./messenger.routes');
 const favouriteRoutes = require('./favourite.routes');
 const passRoomRoutes = require('./passRoom.routes');
+const roommateController = require('../controllers/roommate.controller');
+const { authUser } = require('../auth/checkAuth');
 
 const multer = require('multer');
 const path = require('path');
@@ -29,6 +31,13 @@ function routes(app) {
     app.get('/api/recharge-user', userRoutes);
     app.post('/api/update-user', userRoutes);
     app.post('/api/change-password', userRoutes);
+    app.post('/api/roommate/profile', userRoutes);
+    app.post('/api/roommate/send-otp', userRoutes);
+    app.post('/api/roommate/verify-otp', userRoutes);
+    app.get('/api/roommate/suggestions', authUser, (req, res) => roommateController.getSuggestions(req, res));
+    app.post('/api/roommate/swipe', authUser, (req, res) => roommateController.swipe(req, res));
+    app.get('/api/roommate/liked-you', authUser, (req, res) => roommateController.getLikedYou(req, res));
+    app.get('/api/roommate/matches', authUser, (req, res) => roommateController.getMatches(req, res));
 
     app.get('/api/get-users', userRoutes);
     app.get('/api/get-admin-stats', userRoutes);

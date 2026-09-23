@@ -1,13 +1,31 @@
 const express = require('express');
 const app = express();
-const port = 3000;
 const fs = require('fs');
+const defaultPort = Number(process.env.PORT) || 3000;
 
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
     transports: ['websocket'],
     credentials: true,
 });
+
+const startServer = (port) => {
+    server.once('error', (error) => {
+        if (error && error.code === 'EADDRINUSE') {
+            const nextPort = port + 1;
+            console.warn(`Port ${port} đang bị chiếm, thử port ${nextPort}...`);
+            startServer(nextPort);
+            return;
+        }
+
+        console.error('Lỗi khởi động server:', error);
+        process.exit(1);
+    });
+
+    server.listen(port, () => {
+        console.log(`Example app listening on port ${port}`);
+    });
+};
 
 global.io = io;
 
@@ -21,7 +39,17 @@ const cookie = require('cookie');
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || origin === process.env.CLIENT_URL || /^https:\/\/.*\.ngrok-free\.dev$/.test(origin)) {
+        const allowedOrigins = [
+            process.env.CLIENT_URL,
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://localhost:4173',
+        ].filter(Boolean);
+
+        const isAllowed = !origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || /^https:\/\/.*\.ngrok-free\.dev$/.test(origin);
+
+        if (isAllowed) {
             return callback(null, true);
         }
         return callback(new Error('CORS origin not allowed'));
@@ -85,6 +113,4 @@ app.post('/api/add-search', (req, res) => {
     return res.status(200).json({ message: 'Thêm từ khóa thành công' });
 });
 
-server.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
-});
+startServer(defaultPort);

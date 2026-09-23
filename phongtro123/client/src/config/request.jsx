@@ -22,6 +22,41 @@ export const requestForgotPassword = async (data) => {
     return res.data;
 };
 
+export const requestSendRoommateOtp = async (data = {}) => {
+    const res = await request.post('/api/roommate/send-otp', data);
+    return res.data;
+};
+
+export const requestVerifyRoommateOtp = async (data) => {
+    const res = await request.post('/api/roommate/verify-otp', data);
+    return res.data;
+};
+
+export const requestGetRoommateSuggestions = async (params = {}) => {
+    const res = await request.get('/api/roommate/suggestions', { params });
+    return res.data;
+};
+
+export const requestSaveRoommateProfile = async (data) => {
+    const res = await request.post('/api/roommate/profile', data);
+    return res.data;
+};
+
+export const requestSwipeRoommate = async (data) => {
+    const res = await request.post('/api/roommate/swipe', data);
+    return res.data;
+};
+
+export const requestGetRoommateLikedYou = async () => {
+    const res = await request.get('/api/roommate/liked-you');
+    return res.data;
+};
+
+export const requestGetRoommateMatches = async () => {
+    const res = await request.get('/api/roommate/matches');
+    return res.data;
+};
+
 export const requestGetHotSearch = async () => {
     const res = await request.get('/api/get-search-keyword');
     return res.data;

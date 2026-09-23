@@ -62,19 +62,29 @@ export const useSocket = () => {
     // Khi có tin nhắn mới, cập nhật nội dung chat
     useEffect(() => {
         if (newMessage) {
-            // Tìm xem người gửi tin nhắn đã có trong danh sách usersMessage chưa
-            const userIndex = globalUsersMessage.findIndex((user) => user.id === newMessage.senderId);
-            if (userIndex !== -1) {
-                // Nếu đã có, thêm tin nhắn mới vào
-                setGlobalUsersMessage((prevUsers) => {
-                    const updatedUsers = [...prevUsers];
-                    const updatedMessages = [...updatedUsers[userIndex]?.messages, newMessage];
-                    updatedUsers[userIndex] = { ...updatedUsers[userIndex], messages: updatedMessages };
-                    return updatedUsers;
-                });
+            const userIndex = globalUsersMessage.findIndex((user) => String(user.id) === String(newMessage.senderId));
+
+            if (userIndex === -1) {
+                setGlobalUsersMessage((prevUsers) => [
+                    ...prevUsers,
+                    {
+                        id: newMessage.senderId,
+                        username: newMessage.senderName || 'Người dùng mới',
+                        avatar: newMessage.senderAvatar || '',
+                        status: 'Đang hoạt động',
+                        messages: [newMessage],
+                    },
+                ]);
+                return;
             }
+
+            setGlobalUsersMessage((prevUsers) => {
+                const updatedUsers = [...prevUsers];
+                const updatedMessages = [...(updatedUsers[userIndex]?.messages || []), newMessage];
+                updatedUsers[userIndex] = { ...updatedUsers[userIndex], messages: updatedMessages };
+                return updatedUsers;
+            });
         }
-        console.log('Current usersMessage:', globalUsersMessage);
     }, [newMessage, globalUsersMessage]);
 
     // Khi có thông báo tin nhắn đã đọc, cập nhật trạng thái tin nhắn

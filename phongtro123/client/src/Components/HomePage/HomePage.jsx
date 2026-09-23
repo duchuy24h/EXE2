@@ -7,10 +7,12 @@ import { requestGetNewPost, requestGetPassRooms, requestGetPosts, requestPostSug
 
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
+import { useStore } from '../../hooks/useStore';
 
 const cx = classNames.bind(styles);
 
 function HomePage() {
+    const { dataUser } = useStore();
     const [dataPost, setDataPost] = useState([]);
     const [dataPassRoom, setDataPassRoom] = useState([]);
 
@@ -58,6 +60,8 @@ function HomePage() {
     const toggleValue = (currentValue, setter, value) => {
         setter(currentValue === value ? '' : value);
     };
+
+    const isRoommateReady = !!dataUser?._id && dataUser?.emailVerified && dataUser?.roommateProfile && dataUser.roommateProfile.location;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -147,6 +151,9 @@ function HomePage() {
                         <button onClick={() => setTypeNews('normal')} id={cx(typeNews === 'normal' && 'active')}>
                             Mới đăng
                         </button>
+                        <Link to={isRoommateReady ? '/roommate/discover' : '/roommate/verify'} className={cx('roommate-cta')}>
+                            Tìm người ghép trọ
+                        </Link>
                     </div>
                 </div>
 

@@ -3,7 +3,7 @@ import styles from './Header.module.scss';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/images/homiehub-logo.svg';
 import { Dropdown, Menu, Avatar, Space } from 'antd';
-import { UserOutlined, LogoutOutlined, ProfileOutlined, SearchOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, ProfileOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 
 import { useStore } from '../../hooks/useStore';
 import { useState } from 'react';
@@ -54,6 +54,8 @@ function Header() {
         navigate(`/search/${value}`);
     };
 
+    const isRoommateReady = !!dataUser?._id && dataUser?.emailVerified && dataUser?.roommateProfile && dataUser.roommateProfile.location;
+
     return (
         <div className={cx('wrapper')}>
             <div className={cx('inner')}>
@@ -91,6 +93,29 @@ function Header() {
                     )}
                 </div>
                 <div className={cx('actions')}>
+                    <Link to={isRoommateReady ? '/roommate/discover' : '/roommate/verify'} className={cx('btn-roommate')}>
+                        Tìm người ghép trọ
+                    </Link>
+                    {dataUser._id && dataUser?.emailVerified && (
+                        <Link
+                            to="/roommate/onboarding?edit=1"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '10px 14px',
+                                borderRadius: 999,
+                                background: '#f5f5f5',
+                                color: '#111',
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                border: '1px solid #e6e6e6',
+                            }}
+                        >
+                            <EditOutlined />
+                            Sửa bio
+                        </Link>
+                    )}
                     {dataUser._id ? (
                         <>
                             <Dropdown overlay={menu} placement="bottomRight">

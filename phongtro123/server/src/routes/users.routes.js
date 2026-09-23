@@ -14,6 +14,9 @@ router.get('/api/refresh-token', asyncHandler(controllerUsers.refreshToken));
 router.get('/api/recharge-user', authUser, asyncHandler(controllerUsers.getRechargeUser));
 router.post('/api/update-user', authUser, asyncHandler(controllerUsers.updateUser));
 router.post('/api/change-password', authUser, asyncHandler(controllerUsers.changePassword));
+router.post('/api/roommate/profile', authUser, asyncHandler(controllerUsers.saveRoommateProfile));
+router.post('/api/roommate/send-otp', authUser, asyncHandler(controllerUsers.sendRoommateOtp));
+router.post('/api/roommate/verify-otp', authUser, asyncHandler(controllerUsers.verifyRoommateOtp));
 router.post('/api/forgot-password', asyncHandler(controllerUsers.forgotPassword));
 router.post('/api/reset-password', asyncHandler(controllerUsers.resetPassword));
 
