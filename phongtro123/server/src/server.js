@@ -5,7 +5,7 @@ const defaultPort = Number(process.env.PORT) || 3000;
 
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
     credentials: true,
 });
 
@@ -47,7 +47,7 @@ app.use(cors({
             'http://localhost:4173',
         ].filter(Boolean);
 
-        const isAllowed = !origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || /^https:\/\/.*\.ngrok-free\.dev$/.test(origin);
+        const isAllowed = !origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || /^https:\/\/.*\.ngrok-free\.(dev|app)$/.test(origin);
 
         if (isAllowed) {
             return callback(null, true);

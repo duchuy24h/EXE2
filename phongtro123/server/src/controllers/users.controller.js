@@ -275,7 +275,7 @@ class controllerUsers {
             const totalTransactions = await modelRechargeUser.countDocuments();
             const totalRevenue = await modelRechargeUser.aggregate([
                 { $match: { status: 'success' } },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
+                { $group: { _id: null, total: { $sum: { $ifNull: ['$amountVND', '$amount'] } } } },
             ]);
 
             // Get transactions in the last 30 days
@@ -303,7 +303,7 @@ class controllerUsers {
                         status: 'success',
                     },
                 },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
+                { $group: { _id: null, total: { $sum: { $ifNull: ['$amountVND', '$amount'] } } } },
             ]);
 
             // Calculate revenue growth percentage
@@ -317,7 +317,7 @@ class controllerUsers {
                         status: 'success',
                     },
                 },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
+                { $group: { _id: null, total: { $sum: { $ifNull: ['$amountVND', '$amount'] } } } },
             ]);
 
             const revenueGrowth =
@@ -373,7 +373,10 @@ class controllerUsers {
                 _id: transaction._id.toString(),
                 userId: transaction.userId._id || transaction.userId,
                 username: transaction.userId.fullName || 'Unknown User',
-                amount: transaction.amount,
+                amount: transaction.amountVND ?? transaction.amount ?? 0,
+                amountVND: transaction.amountVND ?? transaction.amount ?? 0,
+                transactionId: transaction.transactionId,
+                transferCode: transaction.transferCode,
                 typePayment: transaction.typePayment,
                 status: transaction.status,
                 createdAt: transaction.createdAt,
@@ -566,7 +569,7 @@ class controllerUsers {
             const totalTransactions = await modelRechargeUser.countDocuments();
             const totalRevenue = await modelRechargeUser.aggregate([
                 { $match: { status: 'success' } },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
+                { $group: { _id: null, total: { $sum: { $ifNull: ['$amountVND', '$amount'] } } } },
             ]);
 
             // Get recent transactions (last 7 days)
@@ -601,7 +604,7 @@ class controllerUsers {
                         status: 'success',
                     },
                 },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
+                { $group: { _id: null, total: { $sum: { $ifNull: ['$amountVND', '$amount'] } } } },
             ]);
 
             // Get previous period revenue (7-14 days ago)
@@ -615,7 +618,7 @@ class controllerUsers {
                         status: 'success',
                     },
                 },
-                { $group: { _id: null, total: { $sum: '$amount' } } },
+                { $group: { _id: null, total: { $sum: { $ifNull: ['$amountVND', '$amount'] } } } },
             ]);
 
             // Calculate revenue growth
@@ -638,7 +641,10 @@ class controllerUsers {
             const formattedTransactions = recentTransactionsList.map((transaction) => ({
                 key: transaction._id.toString(),
                 username: transaction.userId?.fullName || 'Unknown User',
-                amount: transaction.amount,
+                amount: transaction.amountVND ?? transaction.amount ?? 0,
+                amountVND: transaction.amountVND ?? transaction.amount ?? 0,
+                transactionId: transaction.transactionId,
+                transferCode: transaction.transferCode,
                 typePayment: transaction.typePayment,
                 status: transaction.status,
                 createdAt: transaction.createdAt,

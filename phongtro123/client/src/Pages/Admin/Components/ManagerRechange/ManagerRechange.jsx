@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Space } from 'antd';
+import { Card, Row, Col, Statistic, Table, Space, Modal, Descriptions, Tag } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
@@ -16,6 +16,7 @@ function ManagerRechange() {
     });
     const [rechargeData, setRechargeData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
 
     const columns = [
         {
@@ -27,7 +28,7 @@ function ManagerRechange() {
             title: 'Số tiền',
             dataIndex: 'amount',
             key: 'amount',
-            render: (amount) => `${amount.toLocaleString('vi-VN')} VNĐ`,
+            render: (amount, record) => `${Number(amount ?? record.amount ?? 0).toLocaleString('vi-VN')} VNĐ`,
         },
         {
             title: 'Phương thức',
@@ -108,11 +109,30 @@ function ManagerRechange() {
                     <Table
                         columns={columns}
                         dataSource={rechargeData}
+                        onRow={(record) => ({ onClick: () => setSelectedTransaction(record), style: { cursor: 'pointer' } })}
                         loading={loading}
                         pagination={{ pageSize: 10 }}
                     />
                 </Card>
             </Space>
+            <Modal
+                title="Chi tiết giao dịch"
+                open={Boolean(selectedTransaction)}
+                footer={null}
+                onCancel={() => setSelectedTransaction(null)}
+            >
+                {selectedTransaction && (
+                    <Descriptions bordered column={1}>
+                        <Descriptions.Item label="Người dùng">{selectedTransaction.username}</Descriptions.Item>
+                        <Descriptions.Item label="Số tiền">{Number(selectedTransaction.amount ?? selectedTransaction.amountVND ?? 0).toLocaleString('vi-VN')} VNĐ</Descriptions.Item>
+                        <Descriptions.Item label="Phương thức">{selectedTransaction.typePayment}</Descriptions.Item>
+                        <Descriptions.Item label="Mã nội dung">{selectedTransaction.transferCode || 'Chưa có'}</Descriptions.Item>
+                        <Descriptions.Item label="Mã giao dịch ngân hàng">{selectedTransaction.transactionId || 'Chưa xác nhận'}</Descriptions.Item>
+                        <Descriptions.Item label="Trạng thái"><Tag color={selectedTransaction.status === 'success' ? 'green' : 'orange'}>{selectedTransaction.status}</Tag></Descriptions.Item>
+                        <Descriptions.Item label="Ngày tạo">{moment(selectedTransaction.createdAt).format('DD/MM/YYYY HH:mm')}</Descriptions.Item>
+                    </Descriptions>
+                )}
+            </Modal>
         </div>
     );
 }

@@ -259,6 +259,11 @@ export const requestPayments = async (data) => {
     return res.data;
 };
 
+export const requestCreateQrPayment = async (amount) => {
+    const res = await request.post('/api/payments/qr', { amount });
+    return res.data;
+};
+
 export const requestGetRechargeUser = async () => {
     const res = await request.get('/api/recharge-user');
     return res.data;

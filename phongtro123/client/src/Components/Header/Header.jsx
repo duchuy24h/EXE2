@@ -61,7 +61,7 @@ function Header() {
             <div className={cx('inner')}>
                 <Link to="/">
                     <div>
-                        <img src={logo} alt="Logo PhongTro123" />
+                        <img src={logo} alt="Logo homiehub" />
                     </div>
                 </Link>
 

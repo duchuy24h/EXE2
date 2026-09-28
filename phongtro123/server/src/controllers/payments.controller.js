@@ -11,6 +11,87 @@ const modelRechargeUser = require('../models/RechargeUser.model');
 const { v4: uuidv4 } = require('uuid');
 
 class PaymentsController {
+    async createQrPayment(req, res) {
+        const { id } = req.user;
+        const amount = Number(req.body.amount);
+
+        if (!Number.isInteger(amount) || amount < 10000) {
+            throw new BadRequestError('Số tiền nạp tối thiểu là 10.000 VND');
+        }
+
+        const transferCode = `PHONGTRO${String(id).slice(-6).toUpperCase()}${Date.now().toString().slice(-6)}`;
+        await modelRechargeUser.create({
+            userId: id,
+            amountVND: amount,
+            coin: 0,
+            typePayment: 'MB_QR',
+            status: 'pending',
+            transferCode,
+        });
+
+        const qrUrl = `https://img.vietqr.io/image/MB-200455556669-compact2.png?amount=${amount}&addInfo=${transferCode}&accountName=NGUYEN%20DUC%20HUY`;
+        return new OK({
+            message: 'Tạo mã QR nạp tiền thành công',
+            metadata: { amount, transferCode, qrUrl },
+        }).send(res);
+    }
+
+    async receiveSepayWebhook(req, res) {
+        const configuredToken = process.env.SEPAY_WEBHOOK_TOKEN;
+        const authorization = req.headers.authorization || '';
+        const expectedAuthorization = [`Apikey ${configuredToken}`, `Bearer ${configuredToken}`];
+        if (!configuredToken || !expectedAuthorization.includes(authorization)) {
+            return res.status(401).json({ message: 'Webhook token không hợp lệ' });
+        }
+
+        const payload = req.body || {};
+        const transferAmount = Number(payload.transferAmount ?? payload.amount ?? payload.transfer_amount ?? 0);
+        const transferContent = String(payload.content || payload.description || payload.transferContent || payload.code || '');
+        const transactionId = String(payload.id || payload.referenceCode || payload.transactionId || '');
+        const transferCode = transferContent.match(/PHONGTRO[A-Z0-9]+/i)?.[0]?.toUpperCase();
+        const transaction = await modelRechargeUser.findOne({
+            transferCode,
+            status: 'pending',
+        });
+
+        if (!transaction) {
+            return res.status(200).json({ message: 'Giao dịch đã xử lý hoặc không khớp mã nạp' });
+        }
+        if (!Number.isFinite(transferAmount) || transferAmount < transaction.amountVND) {
+            return res.status(400).json({ message: 'Số tiền chuyển khoản không đủ' });
+        }
+
+        const updated = await modelRechargeUser.findOneAndUpdate(
+            { _id: transaction._id, status: 'pending' },
+            { $set: { status: 'success', paidAt: new Date(), transactionId } },
+            { new: true },
+        );
+        if (!updated) {
+            return res.status(200).json({ message: 'Giao dịch đã xử lý' });
+        }
+
+        const user = await modelUser.findByIdAndUpdate(
+            transaction.userId,
+            { $inc: { coin: transaction.coin } },
+            { new: true },
+        );
+        if (!user) {
+            throw new BadRequestError('Người dùng không tồn tại');
+        }
+
+        const socket = global.usersMap?.get(String(user._id));
+        if (socket) {
+            socket.emit('new-payment', {
+                userId: user._id,
+                amount: transaction.amountVND,
+                coin: transaction.coin,
+                date: updated.paidAt,
+                typePayment: 'MB_QR',
+            });
+        }
+        return res.status(200).json({ message: 'Đã cộng tiền vào tài khoản' });
+    }
+
     async payments(req, res) {
         const { id } = req.user;
         const { typePayment, amountUser } = req.body;

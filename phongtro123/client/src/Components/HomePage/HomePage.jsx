@@ -44,7 +44,7 @@ function HomePage() {
     ];
 
     useEffect(() => {
-        document.title = 'Trang chủ';
+        document.title = 'homiehub';
     }, []);
 
     // Initialize state from URL parameters on mount
@@ -93,6 +93,7 @@ function HomePage() {
 
     const [dataNewPost, setDataNewPost] = useState([]);
     const [dataPostSuggest, setDataPostSuggest] = useState([]);
+    const vipHighlights = dataPost.filter((post) => post.typeNews === 'vip').slice(0, 3);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -138,27 +139,25 @@ function HomePage() {
 
     return (
         <div className={cx('wrapper')}>
-            <div className={cx('inner')}>
-                <div className={cx('header')}>
-                    <h1 className={cx('title')}>Kênh thông tin Phòng trọ số 1 Việt Nam</h1>
-                    <p className={cx('description')}>Đây là nơi bạn có thể tìm thấy thông tin và dịch vụ tốt nhất.</p>
-                    <p className={cx('description-1')}>có {dataPost.length} tin đang cho thuê</p>
-
-                    <div className={cx('actions')}>
-                        <button onClick={() => setTypeNews('vip')} id={cx(typeNews === 'vip' && 'active')}>
-                            Đề xuất
-                        </button>
-                        <button onClick={() => setTypeNews('normal')} id={cx(typeNews === 'normal' && 'active')}>
-                            Mới đăng
-                        </button>
-                        <Link to={isRoommateReady ? '/roommate/discover' : '/roommate/verify'} className={cx('roommate-cta')}>
-                            Tìm người ghép trọ
-                        </Link>
+            <div className={cx('filter')}>
+                <div className={cx('filter-section')}>
+                    <h3>Loại hình</h3>
+                    <div className={cx('filter-list')}>
+                        {categoryOptions.map((option) => (
+                            <button
+                                key={option.value}
+                                type="button"
+                                className={cx('filter-chip', { active: category === option.value })}
+                                onClick={() => toggleValue(category, setCategory, option.value)}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
                 {dataPassRoom.length > 0 && (
-                    <div className={cx('feature-passroom')}>
+                    <div className={cx('filter-section', 'feature-passroom')}>
                         <div className={cx('feature-header')}>
                             <div>
                                 <span className={cx('feature-label')}>Dịch vụ đặc biệt</span>
@@ -214,48 +213,6 @@ function HomePage() {
                     </div>
                 )}
 
-                <div className={cx('list-content')}>
-                    {dataPost.map((post) => (
-                        <CardBody key={post._id} post={post} />
-                    ))}
-                </div>
-            </div>
-            <div className={cx('filter')}>
-                <div className={cx('filter-section')}>
-                    <h3>Loại hình</h3>
-                    <div className={cx('filter-list')}>
-                        {categoryOptions.map((option) => (
-                            <button
-                                key={option.value}
-                                type="button"
-                                className={cx('filter-chip', { active: category === option.value })}
-                                onClick={() => toggleValue(category, setCategory, option.value)}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className={cx('filter-section')}>
-                    <h3>Dịch vụ đặc biệt</h3>
-                    <div className={cx('filter-list')}>
-                        <button
-                            type="button"
-                            className={cx('filter-chip', { active: passRoomKind === 'pass-room' })}
-                            onClick={() => toggleValue(passRoomKind, setPassRoomKind, 'pass-room')}
-                        >
-                            Pass đồ trọ
-                        </button>
-                        <button
-                            type="button"
-                            className={cx('filter-chip', { active: passRoomKind === 'affiliate-decor' })}
-                            onClick={() => toggleValue(passRoomKind, setPassRoomKind, 'affiliate-decor')}
-                        >
-                            Affiliate decor
-                        </button>
-                    </div>
-                </div>
                 <div className={cx('filter-section')}>
                     <h3>Xem theo khoảng giá</h3>
                     <div className={cx('filter-list')}>
@@ -338,6 +295,57 @@ function HomePage() {
                             </Link>
                         ))}
                     </div>
+                </div>
+            </div>
+
+            <div className={cx('inner')}>
+                <div className={cx('header')}>
+                    <h1 className={cx('title')}>Kênh thông tin Phòng trọ số 1 Việt Nam</h1>
+                    <p className={cx('description')}>Đây là nơi bạn có thể tìm thấy thông tin và dịch vụ tốt nhất.</p>
+                    <p className={cx('description-1')}>có {dataPost.length} tin đang cho thuê</p>
+
+                    <div className={cx('actions')}>
+                        <button onClick={() => setTypeNews('vip')} id={cx(typeNews === 'vip' && 'active')}>
+                            Đề xuất
+                        </button>
+                        <button onClick={() => setTypeNews('normal')} id={cx(typeNews === 'normal' && 'active')}>
+                            Mới đăng
+                        </button>
+                        <Link to={isRoommateReady ? '/roommate/discover' : '/roommate/verify'} className={cx('roommate-cta')}>
+                            Tìm người ghép trọ
+                        </Link>
+                    </div>
+                </div>
+
+                {vipHighlights.length > 0 && (
+                    <div className={cx('vip-featured')}>
+                        <div className={cx('vip-header')}>
+                            <span>Tin VIP nổi bật</span>
+                            <Link to="/?typeNews=vip">Xem tất cả</Link>
+                        </div>
+
+                        <div className={cx('vip-grid')}>
+                            {vipHighlights.map((post) => (
+                                <Link to={`/chi-tiet-tin-dang/${post._id}`} key={post._id} className={cx('vip-card')}>
+                                    <img src={post.images?.[0]} alt={post.title} />
+                                    <div className={cx('vip-cardBody')}>
+                                        <span className={cx('vip-badge')}>VIP</span>
+                                        <h3>{post.title}</h3>
+                                        <div className={cx('vip-meta')}>
+                                            <span>{post.location}</span>
+                                            <strong>{post.price?.toLocaleString('vi-VN')} VNĐ</strong>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div className={cx('list-content')}>
+                    {dataPost.map((post) => (
+                        <CardBody key={post._id} post={post} />
+                    ))}
                 </div>
             </div>
         </div>

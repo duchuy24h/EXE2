@@ -21,7 +21,6 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
-import { Editor } from '@tinymce/tinymce-react';
 import { requestCreatePost } from '../../../../config/request';
 
 const { Option } = Select;
@@ -340,19 +339,16 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 </Col>
             </Row>
 
-            <div style={{ width: '100%' }}>
-                <Editor
-                    apiKey="hfm046cu8943idr5fja0r5l2vzk9l8vkj5cp3hx2ka26l84x"
-                    init={{
-                        plugins:
-                            'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-                        toolbar:
-                            'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
-                    }}
-                    initialValue="Mô tả phòng trọ"
-                    onEditorChange={(content) => setDescription(content)}
+            <Form.Item label="Mô tả phòng trọ" required>
+                <Input.TextArea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="Nhập mô tả phòng trọ, nội thất, vị trí và tiện ích..."
+                    rows={8}
+                    showCount
+                    maxLength={5000}
                 />
-            </div>
+            </Form.Item>
 
             <Divider />
 

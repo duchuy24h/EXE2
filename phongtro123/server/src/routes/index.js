@@ -73,6 +73,8 @@ function routes(app) {
 
     /// payments
     app.post('/api/payments', paymentsRoutes);
+    app.post('/api/payments/qr', paymentsRoutes);
+    app.post('/api/webhooks/sepay', paymentsRoutes);
     app.get('/api/check-payment-vnpay', paymentsRoutes);
     app.get('/api/check-payment-momo', paymentsRoutes);
 

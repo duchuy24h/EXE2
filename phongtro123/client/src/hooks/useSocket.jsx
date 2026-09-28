@@ -15,8 +15,13 @@ export const useSocket = () => {
     const socketRef = useRef();
 
     useEffect(() => {
-        socketRef.current = io(import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin, {
-            transports: ['websocket'],
+        const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const socketUrl = isLocalHost
+            ? import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin
+            : window.location.origin;
+
+        socketRef.current = io(socketUrl, {
+            transports: ['polling', 'websocket'],
             withCredentials: true,
         });
 
@@ -24,6 +29,10 @@ export const useSocket = () => {
 
         socket.on('connect', () => {
             console.log('connected to socket');
+        });
+
+        socket.on('connect_error', (error) => {
+            console.warn('Socket connection unavailable:', error.message);
         });
 
         socket.on('new-payment', async (data) => {

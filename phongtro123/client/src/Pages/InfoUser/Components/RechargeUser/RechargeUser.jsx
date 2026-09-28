@@ -2,7 +2,7 @@ import classNames from 'classnames/bind';
 import styles from './RechargeUser.module.scss';
 import { Form, Input, Radio, Button, Row, Col, InputNumber, Image, Modal, Result, Table, Tag, Typography } from 'antd';
 import { useState, useEffect } from 'react';
-import { requestGetRechargeUser, requestPayments } from '../../../../config/request';
+import { requestCreateQrPayment, requestGetRechargeUser } from '../../../../config/request';
 import { useStore } from '../../../../hooks/useStore';
 
 import dayjs from 'dayjs';
@@ -12,7 +12,7 @@ const cx = classNames.bind(styles);
 
 function RechargeUser() {
     const [form] = Form.useForm();
-    const [paymentMethod, setPaymentMethod] = useState(null);
+    const [qrPayment, setQrPayment] = useState(null);
     const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
     const [paymentData, setPaymentData] = useState(null);
     const [paymentHistory, setPaymentHistory] = useState([]);
@@ -48,22 +48,13 @@ function RechargeUser() {
         }
     };
 
-    const handlePaymentMethodChange = (e) => {
-        setPaymentMethod(e.target.value);
-    };
-
     const handleSubmit = async (values) => {
-        const data = {
-            typePayment: paymentMethod,
-            amountUser: values.amount,
-        };
-        if (paymentMethod === 'MOMO') {
-            const res = await requestPayments(data);
-            window.open(res.metadata.payUrl, '_blank');
-        }
-        if (paymentMethod === 'VNPAY') {
-            const res = await requestPayments(data);
-            window.open(res.metadata, '_blank');
+        setLoading(true);
+        try {
+            const res = await requestCreateQrPayment(values.amount);
+            setQrPayment(res.metadata);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -87,7 +78,7 @@ function RechargeUser() {
             title: 'Số tiền',
             dataIndex: 'amount',
             key: 'amount',
-            render: (amount) => formatCurrency(amount),
+            render: (amount, record) => formatCurrency(amount ?? record.amount),
             width: 150,
         },
         {
@@ -157,28 +148,22 @@ function RechargeUser() {
                                 />
                             </Form.Item>
 
-                            <Form.Item
-                                label="Phương thức thanh toán"
-                                name="paymentMethod"
-                                rules={[
-                                    {
-                                        required: true,
-                                        message: 'Vui lòng chọn phương thức thanh toán',
-                                    },
-                                ]}
-                            >
-                                <Radio.Group onChange={handlePaymentMethodChange}>
-                                    <Radio.Button value="VNPAY">VNPay</Radio.Button>
-                                    <Radio.Button value="MOMO">MoMo</Radio.Button>
-                                </Radio.Group>
-                            </Form.Item>
-
                             <Form.Item>
-                                <Button type="primary" htmlType="submit" className={cx('recharge-button')} block>
-                                    Nạp tiền
+                                <Button type="primary" htmlType="submit" className={cx('recharge-button')} loading={loading} block>
+                                    Tạo QR nạp tiền
                                 </Button>
                             </Form.Item>
                         </Form>
+                        {qrPayment && (
+                            <div className={cx('qr-payment')}>
+                                <h3>Quét QR bằng app ngân hàng</h3>
+                                <img src={qrPayment.qrUrl} alt="QR nạp tiền MB Bank" />
+                                <p>Ngân hàng: MB Bank</p>
+                                <p>Số tiền: <strong>{formatCurrency(qrPayment.amount)}</strong></p>
+                                <p>Nội dung: <strong>{qrPayment.transferCode}</strong></p>
+                                <small>Tiền sẽ được cộng vào tài khoản sau khi hệ thống nhận diện giao dịch thành công.</small>
+                            </div>
+                        )}
                     </div>
                 </Col>
 

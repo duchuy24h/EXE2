@@ -44,7 +44,7 @@ function DetailPost() {
         setSelectedImg(res?.metadata?.data?.images[0]);
         setUser(res?.metadata?.dataUser);
         setUserHeart(res?.metadata?.userFavourite);
-        document.title = `${res.metadata.data.title} - PhongTro123`;
+        document.title = `${res.metadata.data.title} - homiehub`;
     };
 
     useEffect(() => {
