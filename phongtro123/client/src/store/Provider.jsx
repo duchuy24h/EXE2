@@ -1,8 +1,6 @@
 import Context from './Context';
 import CryptoJS from 'crypto-js';
 
-import cookies from 'js-cookie';
-
 import { useEffect, useState } from 'react';
 import { requestAuth, requestSearch } from '../config/request';
 
@@ -24,12 +22,11 @@ export function Provider({ children }) {
     };
 
     useEffect(() => {
-        const token = cookies.get('logged');
-
-        if (!token) {
-            return;
-        }
-        fetchAuth();
+        // Luôn thử xác thực: cookie 'token' (httpOnly) tự động gửi kèm nếu hợp lệ,
+        // /api/auth sẽ trả 401 khi chưa đăng nhập -> bỏ qua lỗi, giữ dataUser = {}.
+        // Không dùng cookie 'logged' làm điều kiện vì nó có thể không đọc được
+        // khi frontend và backend nằm trên subdomain khác nhau.
+        fetchAuth().catch(() => { });
     }, []);
 
     const [valueSearch, setValueSearch] = useState('');

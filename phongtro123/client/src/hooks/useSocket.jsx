@@ -15,10 +15,11 @@ export const useSocket = () => {
     const socketRef = useRef();
 
     useEffect(() => {
-        const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-        const socketUrl = isLocalHost
-            ? import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin
-            : window.location.origin;
+        //const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const socketUrl =
+            import.meta.env.VITE_SOCKET_URL ||
+            import.meta.env.VITE_API_URL ||
+            window.location.origin;
 
         socketRef.current = io(socketUrl, {
             transports: ['polling', 'websocket'],

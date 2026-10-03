@@ -19,6 +19,10 @@ const { jwtDecode } = require('jwt-decode');
 
 const { AiSearchKeyword } = require('../utils/AISearch/AISearch');
 
+// Domain chung cho cookie (vd: .homiehub.com.vn) để frontend và backend khác subdomain vẫn nhận được.
+// Để trống trên localhost thì cookie là host-only (mặc định).
+const cookieDomain = process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {};
+
 class controllerUsers {
     async register(req, res) {
         const { fullName, email, password, phone } = req.body;
@@ -49,6 +53,7 @@ class controllerUsers {
                 httpOnly: true, // Chặn truy cập từ JavaScript (bảo mật hơn)
                 secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
                 sameSite: 'Strict', // Chống tấn công CSRF
+                ...cookieDomain,
                 maxAge: 15 * 60 * 1000, // 15 phút
             });
 
@@ -56,6 +61,7 @@ class controllerUsers {
                 httpOnly: false, // Chặn truy cập từ JavaScript (bảo mật hơn)
                 secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
                 sameSite: 'Strict', // Chống tấn công CSRF
+                ...cookieDomain,
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
             });
 
@@ -64,6 +70,7 @@ class controllerUsers {
                 httpOnly: true,
                 secure: true,
                 sameSite: 'Strict',
+                ...cookieDomain,
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
             });
             new Created({ message: 'Đăng ký thành công', metadata: { token, refreshToken } }).send(res);
@@ -100,6 +107,7 @@ class controllerUsers {
             httpOnly: true, // Chặn truy cập từ JavaScript (bảo mật hơn)
             secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
             sameSite: 'Strict', // Chống tấn công CSRF
+            ...cookieDomain,
             maxAge: 15 * 60 * 1000, // 15 phút
         });
 
@@ -107,6 +115,7 @@ class controllerUsers {
             httpOnly: false, // Chặn truy cập từ JavaScript (bảo mật hơn)
             secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
             sameSite: 'Strict', // Chống tấn công CSRF
+            ...cookieDomain,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
         });
 
@@ -115,6 +124,7 @@ class controllerUsers {
             httpOnly: true,
             secure: true,
             sameSite: 'Strict',
+            ...cookieDomain,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
         });
 
@@ -137,18 +147,21 @@ class controllerUsers {
                 httpOnly: true, // Chặn truy cập từ JavaScript (bảo mật hơn)
                 secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
                 sameSite: 'Strict', // Chống tấn công CSRF
+                ...cookieDomain,
                 maxAge: 15 * 60 * 1000, // 15 phút
             });
             res.cookie('logged', 1, {
                 httpOnly: false, // Chặn truy cập từ JavaScript (bảo mật hơn)
                 secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
                 sameSite: 'Strict', // Chống tấn công CSRF
+                ...cookieDomain,
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
             });
             res.cookie('refreshToken', refreshToken, {
                 httpOnly: true,
                 secure: true,
                 sameSite: 'Strict',
+                ...cookieDomain,
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
             });
             new OK({ message: 'Đăng nhập thành công', metadata: { token, refreshToken } }).send(res);
@@ -167,18 +180,21 @@ class controllerUsers {
                 httpOnly: true, // Chặn truy cập từ JavaScript (bảo mật hơn)
                 secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
                 sameSite: 'Strict', // ChONGL tấn công CSRF
+                ...cookieDomain,
                 maxAge: 15 * 60 * 1000, // 15 phút
             });
             res.cookie('logged', 1, {
                 httpOnly: false, // Chặn truy cập từ JavaScript (bảo mật hơn)
                 secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
                 sameSite: 'Strict', // ChONGL tấn công CSRF
+                ...cookieDomain,
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
             });
             res.cookie('refreshToken', refreshToken, {
                 httpOnly: true,
                 secure: true,
                 sameSite: 'Strict',
+                ...cookieDomain,
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
             });
             new OK({ message: 'Đăng nhập thành công', metadata: { token, refreshToken } }).send(res);
@@ -199,9 +215,9 @@ class controllerUsers {
     async logout(req, res) {
         const user = req.user;
         await modelApiKey.deleteOne({ userId: user.id });
-        res.clearCookie('token');
-        res.clearCookie('refreshToken');
-        res.clearCookie('logged');
+        res.clearCookie('token', cookieDomain);
+        res.clearCookie('refreshToken', cookieDomain);
+        res.clearCookie('logged', cookieDomain);
 
         new OK({ message: 'Đăng xuất thành công' }).send(res);
     }
@@ -217,6 +233,7 @@ class controllerUsers {
             httpOnly: true, // Chặn truy cập từ JavaScript (bảo mật hơn)
             secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
             sameSite: 'Strict', // Chống tấn công CSRF
+            ...cookieDomain,
             maxAge: 15 * 60 * 1000, // 15 phút
         });
 
@@ -224,6 +241,7 @@ class controllerUsers {
             httpOnly: false, // Chặn truy cập từ JavaScript (bảo mật hơn)
             secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
             sameSite: 'Strict', // Chống tấn công CSRF
+            ...cookieDomain,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
         });
 

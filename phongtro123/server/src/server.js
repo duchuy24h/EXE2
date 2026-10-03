@@ -1,12 +1,42 @@
+require('dotenv').config();
+
 const express = require('express');
 const app = express();
 const fs = require('fs');
 const defaultPort = Number(process.env.PORT) || 3000;
 
+// Danh sách origin được phép truy cập (HTTP API + Socket.IO)
+const isAllowedOrigin = (origin) => {
+    const allowedOrigins = [
+        process.env.CLIENT_URL,
+        'https://homiehub.com.vn',
+        'https://www.homiehub.com.vn',
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:4173',
+    ].filter(Boolean);
+
+    return (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/localhost:\d+$/.test(origin) ||
+        /^https:\/\/.*\.ngrok-free\.(dev|app)$/.test(origin)
+    );
+};
+
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
     transports: ['polling', 'websocket'],
-    credentials: true,
+    cors: {
+        origin: (origin, callback) => {
+            if (isAllowedOrigin(origin)) {
+                return callback(null, true);
+            }
+            return callback(new Error('CORS origin not allowed'));
+        },
+        credentials: true,
+    },
 });
 
 const startServer = (port) => {
@@ -29,8 +59,6 @@ const startServer = (port) => {
 
 global.io = io;
 
-require('dotenv').config();
-
 const bodyParser = require('body-parser');
 const cookiesParser = require('cookie-parser');
 const cors = require('cors');
@@ -39,17 +67,7 @@ const cookie = require('cookie');
 
 app.use(cors({
     origin: (origin, callback) => {
-        const allowedOrigins = [
-            process.env.CLIENT_URL,
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'http://localhost:5174',
-            'http://localhost:4173',
-        ].filter(Boolean);
-
-        const isAllowed = !origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || /^https:\/\/.*\.ngrok-free\.(dev|app)$/.test(origin);
-
-        if (isAllowed) {
+        if (isAllowedOrigin(origin)) {
             return callback(null, true);
         }
         return callback(new Error('CORS origin not allowed'));
