@@ -22,6 +22,7 @@ import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
 import { requestCreatePost } from '../../../../config/request';
+import { logGaEvent } from '../../../../analytics/gaHelpers';
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -94,7 +95,7 @@ const durationOptions = [
 
 /** Validate URL is http(s) and looks like an image path or any valid absolute URL */
 const isValidImageUrl = (url) => {
-    if (!url || typeof url !== 'string') return false;
+    if (!url || typeof url === 'string') return false;
     const trimmed = url.trim();
     try {
         const parsed = new URL(trimmed);
@@ -277,6 +278,15 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             };
 
             await requestCreatePost(data);
+
+            // GA4: Tạo bài đăng mới thành công
+            if (!initialValues) {
+                logGaEvent('post_created', {
+                    category: data.category,
+                    post_type: data.typeNews
+                });
+            }
+
             message.success(initialValues ? 'cập nhật bài viết thành công' : 'tạo bài viết thành công');
             form.resetFields();
             setImageUrls([]);
