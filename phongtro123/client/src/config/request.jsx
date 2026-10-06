@@ -254,6 +254,26 @@ export const requestGetPostById = async (id) => {
     return res.data;
 };
 
+export const requestGetAffiliateProducts = async (postId) => {
+    const res = await request.get('/api/get-affiliate-products', { params: { postId } });
+    return res.data;
+};
+
+export const requestAddAffiliateProduct = async (data) => {
+    const res = await request.post('/api/add-affiliate-product', data);
+    return res.data;
+};
+
+export const requestUpdateAffiliateProduct = async (data) => {
+    const res = await request.post('/api/update-affiliate-product', data);
+    return res.data;
+};
+
+export const requestDeleteAffiliateProduct = async (data) => {
+    const res = await request.post('/api/delete-affiliate-product', data);
+    return res.data;
+};
+
 export const requestPayments = async (data) => {
     const res = await request.post('/api/payments', data);
     return res.data;

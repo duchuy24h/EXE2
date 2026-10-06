@@ -19,4 +19,10 @@ router.post('/api/reject-post', authAdmin, asyncHandler(controllerPosts.rejectPo
 
 router.get('/api/post-suggest', authUser, asyncHandler(controllerPosts.postSuggest));
 
+// AFF đồ dùng trong bài đăng trọ
+router.get('/api/get-affiliate-products', asyncHandler(controllerPosts.getAffiliateProducts));
+router.post('/api/add-affiliate-product', authUser, asyncHandler(controllerPosts.addAffiliateProduct));
+router.post('/api/update-affiliate-product', authUser, asyncHandler(controllerPosts.updateAffiliateProduct));
+router.post('/api/delete-affiliate-product', authUser, asyncHandler(controllerPosts.deleteAffiliateProduct));
+
 module.exports = router;
