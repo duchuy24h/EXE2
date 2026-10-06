@@ -4,6 +4,67 @@ const modelMatch = require('../models/roommateMatch.model');
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
 
+const FALLBACK_AVATAR =
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80';
+
+/**
+ * Chuẩn hóa URL ảnh lưu trong DB:
+ * - Giữ nguyên http(s) hợp lệ (Unsplash, CDN, PUBLIC_BASE_URL…)
+ * - Đổi host localhost / 127.0.0.1 sang PUBLIC_BASE_URL nếu có (backward compat deploy)
+ * - Relative /uploads/... → ghép PUBLIC_BASE_URL
+ * - Không trả path filesystem tuyệt đối (C:\..., /Users/...)
+ */
+const normalizeMediaUrl = (rawUrl) => {
+    if (!rawUrl || typeof rawUrl !== 'string') {
+        return '';
+    }
+    const value = rawUrl.trim();
+    if (!value) {
+        return '';
+    }
+
+    if (/^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('/Users/') || value.startsWith('/home/')) {
+        return '';
+    }
+
+    const publicBase = (process.env.PUBLIC_BASE_URL || process.env.SERVER_PUBLIC_URL || '')
+        .trim()
+        .replace(/\/$/, '');
+
+    if (value.startsWith('/uploads/')) {
+        return publicBase ? `${publicBase}${value}` : value;
+    }
+
+    try {
+        const parsed = new URL(value);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            return '';
+        }
+        const isLocalHost =
+            parsed.hostname === 'localhost' ||
+            parsed.hostname === '127.0.0.1' ||
+            parsed.hostname === '0.0.0.0';
+
+        if (isLocalHost && publicBase) {
+            const pathPart = parsed.pathname + (parsed.search || '');
+            return `${publicBase}${pathPart}`;
+        }
+        return value;
+    } catch {
+        return '';
+    }
+};
+
+const normalizeMediaList = (list, fallback = FALLBACK_AVATAR) => {
+    const source = Array.isArray(list) ? list : [];
+    const normalized = source.map(normalizeMediaUrl).filter(Boolean);
+    if (normalized.length) {
+        return normalized;
+    }
+    const fb = normalizeMediaUrl(fallback) || FALLBACK_AVATAR;
+    return [fb];
+};
+
 const getBudgetQuery = (filterValue) => {
     if (!filterValue) {
         return null;
@@ -124,27 +185,43 @@ class RoommateController {
 
         const payload = users.map((user) => {
             const profile = user.roommateProfile || {};
-            const profileImages = Array.isArray(profile.images) && profile.images.length ? profile.images : [user.avatar].filter(Boolean);
+            const rawImages =
+                Array.isArray(profile.images) && profile.images.length
+                    ? profile.images
+                    : [user.avatar].filter(Boolean);
+            const profileImages = normalizeMediaList(rawImages, user.avatar || FALLBACK_AVATAR);
             const budgetValue = Number(profile.budget || 0);
-            const budgetText = budgetValue > 0 ? `${budgetValue.toLocaleString('vi-VN')} triệu` : '3-5 triệu';
+            const budgetText =
+                budgetValue > 0 ? `${budgetValue.toLocaleString('vi-VN')} triệu` : '3-5 triệu';
 
             return {
                 _id: user._id,
                 fullName: user.fullName,
                 email: user.email,
-                avatar: profileImages[0] || user.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80',
-                images: profileImages.length ? profileImages : [user.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80'],
+                avatar: profileImages[0],
+                images: profileImages,
                 address: profile.location || user.address || 'Hà Nội',
-                bio: profile.bio || 'Sống sạch sẽ, tìm bạn ở ghép phù hợp với phong cách yên tĩnh.',
+                bio:
+                    profile.bio ||
+                    'Sống sạch sẽ, tìm bạn ở ghép phù hợp với phong cách yên tĩnh.',
                 age: profile.age || 24,
                 gender: profile.gender || 'Khác',
                 studentStatus: profile.studentStatus || 'Sinh viên',
-                interests: Array.isArray(profile.interests) && profile.interests.length ? profile.interests : ['Yoga', 'Travel', 'Reading'],
-                lifestyle: Array.isArray(profile.lifestyle) && profile.lifestyle.length ? profile.lifestyle : ['Sạch sẽ', 'Làm việc từ xa'],
+                interests:
+                    Array.isArray(profile.interests) && profile.interests.length
+                        ? profile.interests
+                        : ['Yoga', 'Travel', 'Reading'],
+                lifestyle:
+                    Array.isArray(profile.lifestyle) && profile.lifestyle.length
+                        ? profile.lifestyle
+                        : ['Sạch sẽ', 'Làm việc từ xa'],
                 budget: budgetText,
                 distance: `${profile.distanceRadius || 20} km away`,
                 preferredGender: profile.preferredGender || 'Tất cả',
-                preferences: Array.isArray(profile.preferences) && profile.preferences.length ? profile.preferences : ['Không hút thuốc', 'Làm việc từ xa'],
+                preferences:
+                    Array.isArray(profile.preferences) && profile.preferences.length
+                        ? profile.preferences
+                        : ['Không hút thuốc', 'Làm việc từ xa'],
             };
         });
 
@@ -217,13 +294,18 @@ class RoommateController {
             .populate('fromUserId', 'fullName avatar email address')
             .lean();
 
-        const payload = likes.map((item) => ({
-            _id: item.fromUserId._id,
-            fullName: item.fromUserId.fullName,
-            avatar: item.fromUserId.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80',
-            email: item.fromUserId.email,
-            address: item.fromUserId.address || 'Hà Nội',
-        }));
+        const payload = likes.map((item) => {
+            const from = item.fromUserId || {};
+            const avatar =
+                normalizeMediaUrl(from.avatar) || FALLBACK_AVATAR;
+            return {
+                _id: from._id,
+                fullName: from.fullName,
+                avatar,
+                email: from.email,
+                address: from.address || 'Hà Nội',
+            };
+        });
 
         return new OK({
             message: 'Lấy danh sách liked you thành công',
@@ -243,18 +325,25 @@ class RoommateController {
             .lean();
 
         const payload = matches.map((item) => {
-            const otherUser = item.userA._id.toString() === currentUserId.toString() ? item.userB : item.userA;
+            const otherUser =
+                item.userA._id.toString() === currentUserId.toString()
+                    ? item.userB
+                    : item.userA;
             const profile = otherUser.roommateProfile || {};
-            const images = Array.isArray(profile.images) && profile.images.length
-                ? profile.images
-                : [otherUser.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80'];
+            const rawImages =
+                Array.isArray(profile.images) && profile.images.length
+                    ? profile.images
+                    : [otherUser.avatar].filter(Boolean);
+            const images = normalizeMediaList(rawImages, otherUser.avatar || FALLBACK_AVATAR);
 
             return {
                 _id: otherUser._id,
                 name: otherUser.fullName,
-                avatar: images[0] || otherUser.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80',
+                avatar: images[0],
                 images,
-                bio: profile.bio || 'Tôi đang tìm bạn ở ghép phù hợp với lối sống thoải mái.',
+                bio:
+                    profile.bio ||
+                    'Tôi đang tìm bạn ở ghép phù hợp với lối sống thoải mái.',
                 age: profile.age || 24,
                 location: profile.location || otherUser.address || 'Hà Nội',
                 gender: profile.gender || 'Khác',

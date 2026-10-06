@@ -4,6 +4,33 @@ import { useNavigate } from 'react-router-dom';
 import { requestGetRoommateSuggestions, requestSwipeRoommate } from '../../config/request';
 import { useStore } from '../../hooks/useStore';
 
+const FALLBACK_AVATAR =
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80';
+
+const isRenderableImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    const value = url.trim();
+    if (!value) return false;
+    if (/^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('/Users/') || value.startsWith('/home/')) {
+        return false;
+    }
+    if (value.startsWith('/uploads/')) return true;
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+};
+
+const resolveImageList = (profile) => {
+    if (!profile) return [FALLBACK_AVATAR];
+    const fromApi = Array.isArray(profile.images) ? profile.images.filter(isRenderableImageUrl) : [];
+    if (fromApi.length) return fromApi;
+    if (isRenderableImageUrl(profile.avatar)) return [profile.avatar];
+    return [FALLBACK_AVATAR];
+};
+
 function RoommateDiscover() {
     const navigate = useNavigate();
     const { setGlobalUsersMessage } = useStore();
@@ -26,35 +53,13 @@ function RoommateDiscover() {
 
     const buildSuggestionParams = () => {
         const params = {};
-
-        if (filters.location && filters.location !== 'Tất cả') {
-            params.location = filters.location;
-        }
-
-        if (filters.budget && filters.budget !== 'Tất cả') {
-            params.budget = filters.budget;
-        }
-
-        if (filters.gender && filters.gender !== 'Tất cả') {
-            params.gender = filters.gender;
-        }
-
-        if (filters.lifestyle?.length) {
-            params.lifestyle = filters.lifestyle;
-        }
-
-        if (filters.interests?.length) {
-            params.interests = filters.interests;
-        }
-
-        if (filters.preferences?.length) {
-            params.preferences = filters.preferences;
-        }
-
-        if (filters.distance && filters.distance !== 'Tất cả') {
-            params.distance = filters.distance;
-        }
-
+        if (filters.location && filters.location !== 'Tất cả') params.location = filters.location;
+        if (filters.budget && filters.budget !== 'Tất cả') params.budget = filters.budget;
+        if (filters.gender && filters.gender !== 'Tất cả') params.gender = filters.gender;
+        if (filters.lifestyle?.length) params.lifestyle = filters.lifestyle;
+        if (filters.interests?.length) params.interests = filters.interests;
+        if (filters.preferences?.length) params.preferences = filters.preferences;
+        if (filters.distance && filters.distance !== 'Tất cả') params.distance = filters.distance;
         return params;
     };
 
@@ -85,18 +90,19 @@ function RoommateDiscover() {
                 setIsLoading(false);
             }
         };
-
         fetchSuggestions();
-    }, [filters.location, filters.budget, filters.gender, filters.lifestyle, filters.interests, filters.preferences, filters.distance]);
+    }, [
+        filters.location,
+        filters.budget,
+        filters.gender,
+        filters.lifestyle,
+        filters.interests,
+        filters.preferences,
+        filters.distance,
+    ]);
 
     const currentProfile = useMemo(() => profiles[currentIndex], [profiles, currentIndex]);
-    const currentImages = useMemo(() => {
-        if (!currentProfile) return [];
-        const images = Array.isArray(currentProfile.images) && currentProfile.images.length
-            ? currentProfile.images
-            : [currentProfile.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80'];
-        return images.filter(Boolean);
-    }, [currentProfile]);
+    const currentImages = useMemo(() => resolveImageList(currentProfile), [currentProfile]);
 
     useEffect(() => {
         setImageIndex(0);
@@ -137,7 +143,7 @@ function RoommateDiscover() {
                 const matchedUser = {
                     id: currentProfile._id,
                     username: currentProfile.fullName || currentProfile.name,
-                    avatar: currentProfile.avatar,
+                    avatar: currentImages[0] || currentProfile.avatar || FALLBACK_AVATAR,
                     status: 'Đang hoạt động',
                     messages: [],
                 };
@@ -156,7 +162,9 @@ function RoommateDiscover() {
                 return;
             }
 
-            message.info(`Bạn đã ${direction === 'right' ? 'thích' : 'bỏ qua'} ${currentProfile.fullName || currentProfile.name}`);
+            message.info(
+                `Bạn đã ${direction === 'right' ? 'thích' : 'bỏ qua'} ${currentProfile.fullName || currentProfile.name}`,
+            );
         } catch (error) {
             message.error(error?.response?.data?.message || 'Swipe thất bại');
         }
@@ -178,6 +186,8 @@ function RoommateDiscover() {
         });
     };
 
+    const mainImageSrc = currentImages[imageIndex] || FALLBACK_AVATAR;
+
     return (
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0 80px', background: '#f5f0ee', minHeight: '100vh' }}>
             <div
@@ -190,16 +200,51 @@ function RoommateDiscover() {
                     padding: '8px 0 10px',
                 }}
             >
-                <div style={{ width: '100%', maxWidth: 1200, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 18px' }}>
+                <div
+                    style={{
+                        width: '100%',
+                        maxWidth: 1200,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 18px',
+                    }}
+                >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 26, height: 26, borderRadius: 8, background: 'linear-gradient(135deg, #4cd964, #2dbd7a)', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 900 }}>H</div>
+                            <div
+                                style={{
+                                    width: 26,
+                                    height: 26,
+                                    borderRadius: 8,
+                                    background: 'linear-gradient(135deg, #4cd964, #2dbd7a)',
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    color: '#fff',
+                                    fontWeight: 900,
+                                }}
+                            >
+                                H
+                            </div>
                             <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>homehub</div>
                         </div>
                     </div>
 
                     <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: 470, background: '#fff', borderRadius: 999, border: '1px solid #e4e4e4', height: 46, padding: '0 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                width: '100%',
+                                maxWidth: 470,
+                                background: '#fff',
+                                borderRadius: 999,
+                                border: '1px solid #e4e4e4',
+                                height: 46,
+                                padding: '0 16px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                            }}
+                        >
                             <span style={{ fontSize: 20, color: '#666', marginRight: 10 }}>⌕</span>
                             <input
                                 value=""
@@ -250,7 +295,19 @@ function RoommateDiscover() {
                             ◌
                         </button>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#dfe3ec', display: 'grid', placeItems: 'center', fontSize: 16 }}>👤</div>
+                            <div
+                                style={{
+                                    width: 38,
+                                    height: 38,
+                                    borderRadius: '50%',
+                                    background: '#dfe3ec',
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    fontSize: 16,
+                                }}
+                            >
+                                👤
+                            </div>
                             <div style={{ fontSize: 14, color: '#333', fontWeight: 600 }}>Nguyễn Thế Minh</div>
                         </div>
                     </div>
@@ -418,7 +475,9 @@ function RoommateDiscover() {
                                         onClick={() => toggleFilterValue('preferences', item)}
                                         style={{
                                             borderRadius: 999,
-                                            border: filters.preferences.includes(item) ? '1px solid #111' : '1px solid #ddd',
+                                            border: filters.preferences.includes(item)
+                                                ? '1px solid #111'
+                                                : '1px solid #ddd',
                                             background: filters.preferences.includes(item) ? '#111' : '#fff',
                                             color: filters.preferences.includes(item) ? '#fff' : '#111',
                                             padding: '6px 10px',
@@ -455,9 +514,12 @@ function RoommateDiscover() {
                             }}
                         >
                             <img
-                                src={currentImages[imageIndex] || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80'}
+                                src={mainImageSrc}
                                 alt={currentProfile.fullName || currentProfile.name}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                    e.currentTarget.src = FALLBACK_AVATAR;
+                                }}
                             />
 
                             {currentImages.length > 1 && (
@@ -554,10 +616,16 @@ function RoommateDiscover() {
                                     <span style={{ fontSize: 40, fontWeight: 800, color: 'white', lineHeight: 1.1 }}>
                                         {currentProfile.fullName || currentProfile.name}
                                     </span>
-                                    <span style={{ fontSize: 30, fontWeight: 700, color: 'white' }}>{currentProfile.age || 24}</span>
+                                    <span style={{ fontSize: 30, fontWeight: 700, color: 'white' }}>
+                                        {currentProfile.age || 24}
+                                    </span>
                                 </div>
-                                <div style={{ color: 'white', fontSize: 20, marginTop: 8 }}>{currentProfile.address || currentProfile.location}</div>
-                                <div style={{ color: '#fff', fontSize: 18, marginTop: 8, opacity: 0.95 }}>{currentProfile.bio}</div>
+                                <div style={{ color: 'white', fontSize: 20, marginTop: 8 }}>
+                                    {currentProfile.address || currentProfile.location}
+                                </div>
+                                <div style={{ color: '#fff', fontSize: 18, marginTop: 8, opacity: 0.95 }}>
+                                    {currentProfile.bio}
+                                </div>
                             </div>
 
                             <div
@@ -664,7 +732,16 @@ function RoommateDiscover() {
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24, justifyContent: 'center', padding: '0 20px' }}>
+                <div
+                    style={{
+                        display: 'flex',
+                        gap: 12,
+                        flexWrap: 'wrap',
+                        marginTop: 24,
+                        justifyContent: 'center',
+                        padding: '0 20px',
+                    }}
+                >
                     {(currentProfile.tags || currentProfile.interests || []).slice(0, 4).map((tag) => (
                         <span
                             key={tag}
@@ -706,8 +783,17 @@ function RoommateDiscover() {
                             boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
                         }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                            <div style={{ fontSize: 18, fontWeight: 800 }}>{currentProfile.fullName || currentProfile.name}</div>
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: 12,
+                            }}
+                        >
+                            <div style={{ fontSize: 18, fontWeight: 800 }}>
+                                {currentProfile.fullName || currentProfile.name}
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => setShowGallery(false)}
@@ -726,9 +812,12 @@ function RoommateDiscover() {
 
                         <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', background: '#f5f5f5' }}>
                             <img
-                                src={currentImages[imageIndex] || currentImages[0]}
+                                src={currentImages[imageIndex] || FALLBACK_AVATAR}
                                 alt="gallery"
                                 style={{ width: '100%', height: 420, objectFit: 'cover', display: 'block' }}
+                                onError={(e) => {
+                                    e.currentTarget.src = FALLBACK_AVATAR;
+                                }}
                             />
                             {currentImages.length > 1 && (
                                 <>
@@ -780,9 +869,7 @@ function RoommateDiscover() {
                                     <button
                                         key={`${image}-${index}`}
                                         type="button"
-                                        onClick={() => {
-                                            setImageIndex(index);
-                                        }}
+                                        onClick={() => setImageIndex(index)}
                                         style={{
                                             border: index === imageIndex ? '2px solid #111' : '2px solid transparent',
                                             borderRadius: 12,
@@ -794,7 +881,14 @@ function RoommateDiscover() {
                                             cursor: 'pointer',
                                         }}
                                     >
-                                        <img src={image} alt="thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img
+                                            src={image}
+                                            alt="thumbnail"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            onError={(e) => {
+                                                e.currentTarget.src = FALLBACK_AVATAR;
+                                            }}
+                                        />
                                     </button>
                                 ))}
                             </div>

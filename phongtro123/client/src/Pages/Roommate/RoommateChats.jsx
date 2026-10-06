@@ -160,7 +160,14 @@ function RoommateChats() {
                                 }}
                             >
                                 <img
-                                    src={item.images?.[0] || item.avatar}
+                                    src={
+                                        (Array.isArray(item.images) && item.images.find((u) => typeof u === 'string' && (u.startsWith('http') || u.startsWith('/uploads/'))))
+                                        || (typeof item.avatar === 'string' && (item.avatar.startsWith('http') || item.avatar.startsWith('/uploads/')) && item.avatar)
+                                        || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80'
+                                    }
+                                    onError={(e) => {
+                                        e.currentTarget.src = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80';
+                                    }}
                                     alt={item.name}
                                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                 />

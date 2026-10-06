@@ -12,12 +12,33 @@ const lifestyleOptions = ['Sạch sẽ', 'Yên tĩnh', 'Làm việc từ xa', 'C
 const interestOptions = ['Yoga', 'Travel', 'Reading', 'Gym', 'Coffee', 'Music', 'Gaming', 'Film', 'Study', 'Cooking'];
 const preferenceOptions = ['Không hút thuốc', 'Làm việc từ xa', 'Có pet', 'Không có pet', 'Tự do về giờ giấc'];
 
+const FALLBACK_AVATAR =
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80';
+
+const isRenderableImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    const value = url.trim();
+    if (!value) return false;
+    if (/^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('/Users/') || value.startsWith('/home/')) {
+        return false;
+    }
+    if (value.startsWith('/uploads/')) return true;
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+};
+
 function RoommateOnboarding() {
     const navigate = useNavigate();
     const location = useLocation();
     const { dataUser } = useStore();
     const isEditMode = new URLSearchParams(location.search).get('edit') === '1';
-    const [avatarUrl, setAvatarUrl] = useState(dataUser?.avatar || '');
+    const [avatarUrl, setAvatarUrl] = useState(
+        isRenderableImageUrl(dataUser?.avatar) ? dataUser.avatar : '',
+    );
     const [profileImages, setProfileImages] = useState([]);
     const fileInputRef = useRef(null);
     const [formData, setFormData] = useState({
@@ -40,12 +61,15 @@ function RoommateOnboarding() {
     }, [isEditMode]);
 
     useEffect(() => {
-        if (dataUser?.avatar) {
+        if (isRenderableImageUrl(dataUser?.avatar)) {
             setAvatarUrl(dataUser.avatar);
         }
         if (Array.isArray(dataUser?.roommateProfile?.images) && dataUser.roommateProfile.images.length) {
-            setProfileImages(dataUser.roommateProfile.images);
-            setAvatarUrl(dataUser.roommateProfile.images[0]);
+            const valid = dataUser.roommateProfile.images.filter(isRenderableImageUrl);
+            setProfileImages(valid);
+            if (valid[0]) {
+                setAvatarUrl(valid[0]);
+            }
         }
     }, [dataUser]);
 
@@ -61,17 +85,33 @@ function RoommateOnboarding() {
                 studentStatus: profile.studentStatus || prev.studentStatus,
                 budget: profile.budget || prev.budget,
                 preferredGender: profile.preferredGender || prev.preferredGender,
-                lifestyle: Array.isArray(profile.lifestyle) && profile.lifestyle.length ? profile.lifestyle : prev.lifestyle,
-                interests: Array.isArray(profile.interests) && profile.interests.length ? profile.interests : prev.interests,
+                lifestyle:
+                    Array.isArray(profile.lifestyle) && profile.lifestyle.length
+                        ? profile.lifestyle
+                        : prev.lifestyle,
+                interests:
+                    Array.isArray(profile.interests) && profile.interests.length
+                        ? profile.interests
+                        : prev.interests,
                 distanceRadius: profile.distanceRadius || prev.distanceRadius,
-                preferences: Array.isArray(profile.preferences) && profile.preferences.length ? profile.preferences : prev.preferences,
-                isLookingForRoommate: typeof profile.isLookingForRoommate === 'boolean' ? profile.isLookingForRoommate : prev.isLookingForRoommate,
+                preferences:
+                    Array.isArray(profile.preferences) && profile.preferences.length
+                        ? profile.preferences
+                        : prev.preferences,
+                isLookingForRoommate:
+                    typeof profile.isLookingForRoommate === 'boolean'
+                        ? profile.isLookingForRoommate
+                        : prev.isLookingForRoommate,
             }));
         }
     }, [dataUser]);
 
     useEffect(() => {
-        const hasValidRoommateProfile = !!dataUser?._id && dataUser?.emailVerified && dataUser?.roommateProfile && dataUser.roommateProfile.location;
+        const hasValidRoommateProfile =
+            !!dataUser?._id &&
+            dataUser?.emailVerified &&
+            dataUser?.roommateProfile &&
+            dataUser.roommateProfile.location;
         if (hasValidRoommateProfile && !isEditMode) {
             navigate('/roommate/discover', { replace: true });
         }
@@ -97,12 +137,21 @@ function RoommateOnboarding() {
             return;
         }
 
-        const formData = new FormData();
-        files.forEach((file) => formData.append('images', file));
+        if (profileImages.length + files.length > 6) {
+            message.error('Tối đa 6 ảnh');
+            return;
+        }
+
+        const formPayload = new FormData();
+        files.forEach((file) => formPayload.append('images', file));
 
         try {
-            const response = await requestUploadImages(formData);
-            const uploadedImages = response?.images || [];
+            const response = await requestUploadImages(formPayload);
+            const uploadedImages = (response?.images || []).filter(isRenderableImageUrl);
+            if (!uploadedImages.length) {
+                message.error('Server không trả về URL ảnh hợp lệ');
+                return;
+            }
             const nextImages = [...profileImages, ...uploadedImages].slice(0, 6);
             setProfileImages(nextImages);
             setAvatarUrl(nextImages[0] || avatarUrl);
@@ -122,7 +171,7 @@ function RoommateOnboarding() {
         if (nextImages.length) {
             setAvatarUrl(nextImages[0]);
         } else {
-            setAvatarUrl(dataUser?.avatar || '');
+            setAvatarUrl(isRenderableImageUrl(dataUser?.avatar) ? dataUser.avatar : '');
         }
     };
 
@@ -137,11 +186,20 @@ function RoommateOnboarding() {
             return;
         }
 
+        const safeImages = profileImages.filter(isRenderableImageUrl);
+        const safeAvatar =
+            (isRenderableImageUrl(avatarUrl) && avatarUrl) ||
+            safeImages[0] ||
+            (isRenderableImageUrl(dataUser?.avatar) ? dataUser.avatar : '') ||
+            '';
+
         try {
             await requestSaveRoommateProfile({
                 ...formData,
-                avatar: avatarUrl || dataUser?.avatar || '',
-                images: profileImages.length ? profileImages : dataUser?.roommateProfile?.images || [],
+                avatar: safeAvatar,
+                images: safeImages.length
+                    ? safeImages
+                    : dataUser?.roommateProfile?.images?.filter(isRenderableImageUrl) || [],
                 budget: Number(formData.budget),
                 age: Number(formData.age),
                 distanceRadius: Number(formData.distanceRadius),
@@ -152,6 +210,11 @@ function RoommateOnboarding() {
             message.error(error?.response?.data?.message || 'Không thể lưu hồ sơ ghép trọ');
         }
     };
+
+    const previewList = (profileImages.length
+        ? profileImages
+        : [avatarUrl || dataUser?.avatar]
+    ).filter(isRenderableImageUrl);
 
     return (
         <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px 60px', fontFamily: 'Arial, sans-serif' }}>
@@ -167,39 +230,52 @@ function RoommateOnboarding() {
                 <div style={{ background: '#f3f3f3', borderRadius: 18, padding: '22px 18px' }}>
                     <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Ảnh hồ sơ</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-                        {(profileImages.length ? profileImages : [avatarUrl || dataUser?.avatar]).filter(Boolean).map((image, index) => (
-                            <div key={`${image}-${index}`} style={{ position: 'relative' }}>
-                                <img
-                                    src={image}
-                                    alt="profile"
-                                    style={{ width: 72, height: 72, borderRadius: 14, objectFit: 'cover', border: '2px solid #fff' }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => removeImage(image)}
-                                    style={{
-                                        position: 'absolute',
-                                        top: -6,
-                                        right: -6,
-                                        border: 'none',
-                                        borderRadius: '50%',
-                                        background: '#111',
-                                        color: '#fff',
-                                        width: 20,
-                                        height: 20,
-                                        cursor: 'pointer',
-                                        fontSize: 12,
-                                    }}
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        ))}
+                        {previewList.length ? (
+                            previewList.map((image, index) => (
+                                <div key={`${image}-${index}`} style={{ position: 'relative' }}>
+                                    <img
+                                        src={image}
+                                        alt="profile"
+                                        style={{
+                                            width: 72,
+                                            height: 72,
+                                            borderRadius: 14,
+                                            objectFit: 'cover',
+                                            border: '2px solid #fff',
+                                        }}
+                                        onError={(e) => {
+                                            e.currentTarget.src = FALLBACK_AVATAR;
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage(image)}
+                                        style={{
+                                            position: 'absolute',
+                                            top: -6,
+                                            right: -6,
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            background: '#111',
+                                            color: '#fff',
+                                            width: 20,
+                                            height: 20,
+                                            cursor: 'pointer',
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={{ color: '#888', fontSize: 14 }}>Chưa có ảnh. Hãy tải ảnh lên.</div>
+                        )}
                     </div>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         multiple
                         hidden
                         onChange={handleSelectImages}
@@ -229,15 +305,31 @@ function RoommateOnboarding() {
                         </div>
                         <div>
                             <div style={{ marginBottom: 8, fontWeight: 600 }}>Tuổi</div>
-                            <InputNumber min={18} max={40} value={formData.age} onChange={(value) => updateField('age', value)} style={{ width: '100%' }} />
+                            <InputNumber
+                                min={18}
+                                max={40}
+                                value={formData.age}
+                                onChange={(value) => updateField('age', value)}
+                                style={{ width: '100%' }}
+                            />
                         </div>
                         <div>
                             <div style={{ marginBottom: 8, fontWeight: 600 }}>Giới tính</div>
-                            <Select value={formData.gender} onChange={(value) => updateField('gender', value)} style={{ width: '100%' }} options={genderOptions.map((item) => ({ label: item, value: item }))} />
+                            <Select
+                                value={formData.gender}
+                                onChange={(value) => updateField('gender', value)}
+                                style={{ width: '100%' }}
+                                options={genderOptions.map((item) => ({ label: item, value: item }))}
+                            />
                         </div>
                         <div>
                             <div style={{ marginBottom: 8, fontWeight: 600 }}>Trạng thái</div>
-                            <Select value={formData.studentStatus} onChange={(value) => updateField('studentStatus', value)} style={{ width: '100%' }} options={studentStatusOptions.map((item) => ({ label: item, value: item }))} />
+                            <Select
+                                value={formData.studentStatus}
+                                onChange={(value) => updateField('studentStatus', value)}
+                                style={{ width: '100%' }}
+                                options={studentStatusOptions.map((item) => ({ label: item, value: item }))}
+                            />
                         </div>
                         <div>
                             <div style={{ marginBottom: 8, fontWeight: 600 }}>Ngân sách / tháng</div>
@@ -253,7 +345,12 @@ function RoommateOnboarding() {
                         </div>
                         <div>
                             <div style={{ marginBottom: 8, fontWeight: 600 }}>Giới tính ưu tiên</div>
-                            <Select value={formData.preferredGender} onChange={(value) => updateField('preferredGender', value)} style={{ width: '100%' }} options={preferredGenderOptions.map((item) => ({ label: item, value: item }))} />
+                            <Select
+                                value={formData.preferredGender}
+                                onChange={(value) => updateField('preferredGender', value)}
+                                style={{ width: '100%' }}
+                                options={preferredGenderOptions.map((item) => ({ label: item, value: item }))}
+                            />
                         </div>
                     </div>
                 </div>
@@ -279,7 +376,13 @@ function RoommateOnboarding() {
                         </div>
                         <div>
                             <div style={{ marginBottom: 8, fontWeight: 600 }}>Khoảng cách tối đa</div>
-                            <InputNumber min={5} max={50} value={formData.distanceRadius} onChange={(value) => updateField('distanceRadius', value)} style={{ width: 160 }} />
+                            <InputNumber
+                                min={5}
+                                max={50}
+                                value={formData.distanceRadius}
+                                onChange={(value) => updateField('distanceRadius', value)}
+                                style={{ width: 160 }}
+                            />
                             <span style={{ marginLeft: 8 }}>km</span>
                         </div>
                         <div>
@@ -294,7 +397,10 @@ function RoommateOnboarding() {
                 </div>
 
                 <div style={{ background: '#f3f3f3', borderRadius: 18, padding: '22px 18px' }}>
-                    <Checkbox checked={formData.isLookingForRoommate} onChange={(e) => updateField('isLookingForRoommate', e.target.checked)}>
+                    <Checkbox
+                        checked={formData.isLookingForRoommate}
+                        onChange={(e) => updateField('isLookingForRoommate', e.target.checked)}
+                    >
                         Tôi đang tìm bạn ở ghép
                     </Checkbox>
                 </div>

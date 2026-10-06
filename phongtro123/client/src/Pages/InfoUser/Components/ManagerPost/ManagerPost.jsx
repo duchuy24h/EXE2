@@ -3,14 +3,13 @@ import { Card, Typography, Button, Table, Space, Popconfirm, message, Row, Col, 
 import { FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './ManagerPost.module.scss';
-import AddPostForm from './AddPostForm'; // Import the form component
+import AddPostForm from './AddPostForm';
 import { requestDeletePost, requestGetPostByUserId } from '../../../../config/request';
 import { useStore } from '../../../../hooks/useStore';
 
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 
-// Category mapping for display
 const categoryMap = {
     'phong-tro': 'Phòng trọ',
     'nha-nguyen-can': 'Nhà nguyên căn',
@@ -18,12 +17,10 @@ const categoryMap = {
     'can-ho-mini': 'Căn hộ mini',
 };
 
-// NEW Checkbox options list (used for consistency)
-
 function ManagerPost() {
-    const [posts, setPosts] = useState([]); // Initialize with fake data
+    const [posts, setPosts] = useState([]);
     const [isFormVisible, setIsFormVisible] = useState(false);
-    const [editingPost, setEditingPost] = useState(null); // null for adding, post object for editing
+    const [editingPost, setEditingPost] = useState(null);
 
     const { fetchAuth } = useStore();
 
@@ -36,7 +33,6 @@ function ManagerPost() {
         fetchPosts();
     }, []);
 
-    // Calculate statistics using useMemo for efficiency
     const postStats = useMemo(() => {
         const stats = {
             total: posts.length,
@@ -56,7 +52,7 @@ function ManagerPost() {
     }, [posts]);
 
     const handleAddPost = () => {
-        setEditingPost(null); // Ensure we are in "add" mode
+        setEditingPost(null);
         setIsFormVisible(true);
     };
 
@@ -74,26 +70,13 @@ function ManagerPost() {
         }
     };
 
-    const handleFormFinish = (formData) => {
-        if (editingPost) {
-            // Editing existing post
-            console.log('Updating Post:', editingPost.id, formData);
-            setPosts(
-                posts.map((post) =>
-                    post.id === editingPost.id
-                        ? { ...post, ...formData } // Update existing post
-                        : post,
-                ),
-            );
-            message.success('Post updated successfully! (Check Console)');
-        } else {
-            // Adding new post
-            const newPost = { ...formData, id: Date.now() }; // Add a temporary ID
-            setPosts([...posts, newPost]);
-            message.success('Post added successfully! (Check Console)');
-        }
+    const handleFormFinish = async () => {
         setIsFormVisible(false);
         setEditingPost(null);
+        await fetchPosts();
+        if (fetchAuth) {
+            fetchAuth();
+        }
     };
 
     const handleFormCancel = () => {
@@ -101,7 +84,6 @@ function ManagerPost() {
         setEditingPost(null);
     };
 
-    // Define columns for the posts table
     const columns = [
         {
             title: 'Tiêu đề',
@@ -119,7 +101,7 @@ function ManagerPost() {
             title: 'Loại hình',
             dataIndex: 'category',
             key: 'category',
-            render: (category) => categoryMap[category] || category, // Use display name
+            render: (category) => categoryMap[category] || category,
         },
         {
             title: 'Diện tích (m²)',
@@ -131,6 +113,15 @@ function ManagerPost() {
             dataIndex: 'location',
             key: 'location',
             ellipsis: true,
+        },
+        {
+            title: 'AFF',
+            dataIndex: 'affiliateProducts',
+            key: 'affiliateProducts',
+            render: (items) => {
+                const count = Array.isArray(items) ? items.length : 0;
+                return count > 0 ? <Tag color="magenta">{count} sản phẩm</Tag> : <Tag>—</Tag>;
+            },
         },
         {
             title: 'Trạng thái',
@@ -155,9 +146,9 @@ function ManagerPost() {
         {
             title: 'Hành động',
             key: 'action',
-            render: (_, record) =>
-                record.status === 'pending' && (
-                    <Space size="middle">
+            render: (_, record) => (
+                <Space size="middle">
+                    {(record.status === 'inactive' || record.status === 'pending') && (
                         <Popconfirm
                             title="Bạn chắc chắn muốn xóa?"
                             onConfirm={() => handleDeletePost(record._id)}
@@ -168,29 +159,28 @@ function ManagerPost() {
                                 Xóa
                             </Button>
                         </Popconfirm>
-                    </Space>
-                ),
+                    )}
+                </Space>
+            ),
         },
     ];
 
     return (
         <div>
             {isFormVisible ? (
-                // Show Add/Edit Form
                 <AddPostForm
                     onFinish={handleFormFinish}
                     onCancel={handleFormCancel}
-                    initialValues={editingPost} // Pass initialValues for editing
+                    initialValues={editingPost}
                 />
             ) : (
-                // Show Post List View
                 <div>
                     <div
                         style={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginBottom: 24, // Increased margin
+                            marginBottom: 24,
                         }}
                     >
                         <Title level={4} style={{ margin: 0 }}>
@@ -201,7 +191,6 @@ function ManagerPost() {
                         </Button>
                     </div>
 
-                    {/* Statistics Section */}
                     {posts.length > 0 && (
                         <Row gutter={16} style={{ marginBottom: 24 }}>
                             <Col span={6}>
@@ -224,10 +213,15 @@ function ManagerPost() {
                             <Title level={5} style={{ marginBottom: 16 }}>
                                 Danh sách chi tiết
                             </Title>
-                            <Table columns={columns} dataSource={posts} rowKey="id" bordered pagination={false} />
+                            <Table
+                                columns={columns}
+                                dataSource={posts}
+                                rowKey={(record) => record._id || record.id}
+                                bordered
+                                pagination={false}
+                            />
                         </>
                     ) : (
-                        // Placeholder when no posts exist
                         <Card className={cx('content-card')}>
                             <FileTextOutlined className={cx('content-icon')} />
                             <Title level={4}>Chưa có bài viết nào</Title>

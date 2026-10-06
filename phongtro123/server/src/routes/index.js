@@ -10,16 +10,53 @@ const { authUser } = require('../auth/checkAuth');
 const multer = require('multer');
 const path = require('path');
 
+const ALLOWED_IMAGE_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'src/uploads/images');
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname));
+        const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+        cb(null, `${Date.now()}${ext}`);
     },
 });
 
-var upload = multer({ storage: storage });
+const fileFilter = (req, file, cb) => {
+    if (ALLOWED_IMAGE_MIME.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Chỉ cho phép ảnh JPG, PNG hoặc WEBP'));
+    }
+};
+
+var upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 2 * 1024 * 1024,
+        files: 6,
+    },
+});
+
+const getPublicBaseUrl = (req) => {
+    const fromEnv = (process.env.PUBLIC_BASE_URL || process.env.SERVER_PUBLIC_URL || '')
+        .trim()
+        .replace(/\/$/, '');
+    if (fromEnv) {
+        return fromEnv;
+    }
+    const protocol = req.protocol || 'http';
+    const host = req.get('host');
+    if (host) {
+        return `${protocol}://${host}`;
+    }
+    return 'http://localhost:3000';
+};
+
+const buildUploadUrl = (req, filename) => {
+    return `${getPublicBaseUrl(req)}/uploads/images/${filename}`;
+};
 
 function routes(app) {
     app.post('/api/register', userRoutes);
@@ -93,21 +130,59 @@ function routes(app) {
     app.post('/api/delete-favourite', favouriteRoutes);
     app.get('/api/get-favourite', favouriteRoutes);
 
-    ///// uploads
-    app.post('/api/upload-images', upload.array('images'), (req, res) => {
+    ///// uploads — URL theo PUBLIC_BASE_URL / request host; validate MIME + size
+    app.post('/api/upload-images', (req, res, next) => {
+        upload.array('images')(req, res, (err) => {
+            if (err) {
+                return res.status(400).json({
+                    success: false,
+                    message: err.message || 'Upload ảnh thất bại',
+                });
+            }
+            next();
+        });
+    }, (req, res) => {
+        const files = req.files || [];
+        if (!files.length) {
+            return res.status(400).json({
+                success: false,
+                message: 'Không có file ảnh',
+            });
+        }
         return res.status(200).json({
             message: 'Images uploaded successfully',
-            images: req.files.map((file) => `http://localhost:3000/uploads/images/${file.filename}`),
+            images: files.map((file) => buildUploadUrl(req, file.filename)),
         });
     });
 
-    app.post('/api/upload-image', upload.single('avatar'), (req, res) => {
+    app.post('/api/upload-image', (req, res, next) => {
+        upload.single('avatar')(req, res, (err) => {
+            if (err) {
+                return res.status(400).json({
+                    success: false,
+                    message: err.message || 'Upload ảnh thất bại',
+                });
+            }
+            next();
+        });
+    }, (req, res) => {
         const file = req.file;
+        if (!file) {
+            return res.status(400).json({
+                success: false,
+                message: 'Không có file ảnh',
+            });
+        }
         return res.status(200).json({
             message: 'Image uploaded successfully',
-            image: `http://localhost:3000/uploads/images/${file.filename}`,
+            image: buildUploadUrl(req, file.filename),
         });
     });
+
+    app.get('/api/get-affiliate-products', postRoutes);
+    app.post('/api/add-affiliate-product', postRoutes);
+    app.post('/api/update-affiliate-product', postRoutes);
+    app.post('/api/delete-affiliate-product', postRoutes);
 
     app.get('/admin', userRoutes);
 }

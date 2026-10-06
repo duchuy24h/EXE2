@@ -2,6 +2,38 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
+const affiliateProductSchema = new Schema(
+    {
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        image: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        price: {
+            type: Number,
+            default: null,
+        },
+        link: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        platform: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+    },
+    {
+        _id: true,
+    },
+);
+
 const modelPost = new Schema(
     {
         title: {
@@ -70,6 +102,10 @@ const modelPost = new Schema(
         endDate: {
             type: Date,
             required: true,
+        },
+        affiliateProducts: {
+            type: [affiliateProductSchema],
+            default: [],
         },
     },
     {

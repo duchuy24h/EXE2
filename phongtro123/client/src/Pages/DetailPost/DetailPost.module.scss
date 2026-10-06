@@ -23,12 +23,14 @@
     background-color: #fff;
     padding: 10px;
     border-radius: 10px;
+    position: relative;
 }
 
 .slide-item {
     width: 100%;
     height: 100%;
     overflow: hidden;
+
     img {
         width: 100%;
         max-height: 500px;
@@ -41,11 +43,216 @@
     grid-template-columns: repeat(16, 1fr);
     margin-top: 10px;
     gap: 10px;
+
     img {
         width: 50px;
         height: 50px;
         object-fit: cover;
     }
+}
+
+// Nút vàng Đồ dùng nổi trên gallery
+.aff-float-btn {
+    position: absolute;
+    right: 16px;
+    bottom: 70px;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px 8px 10px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ffcc00 0%, #ffb300 100%);
+    color: #1a1a1a;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(255, 179, 0, 0.45);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 6px 18px rgba(255, 179, 0, 0.55);
+    }
+
+    &:active {
+        transform: translateY(0) scale(0.98);
+    }
+}
+
+.aff-float-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+}
+
+.aff-float-label {
+    letter-spacing: 0.02em;
+}
+
+.aff-float-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #1a1a1a;
+    color: #ffcc00;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+// Drawer AFF
+.aff-drawer-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+
+    svg {
+        color: #ffb300;
+    }
+}
+
+.aff-drawer-count {
+    margin-left: 4px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #ffcc00;
+    color: #1a1a1a;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aff-drawer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.aff-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    background: #fafafa;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+}
+
+.aff-drawer-image {
+    width: 72px;
+    height: 72px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #eee;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+}
+
+.aff-drawer-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #bbb;
+    font-size: 22px;
+    background: #f0f0f0;
+}
+
+.aff-drawer-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.aff-drawer-name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.aff-drawer-platform {
+    display: inline-block;
+    width: fit-content;
+    font-size: 11px;
+    color: #be185d;
+    background: rgba(236, 72, 153, 0.1);
+    padding: 1px 8px;
+    border-radius: 999px;
+}
+
+.aff-drawer-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e03c31;
+}
+
+.aff-drawer-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: #ffcc00;
+    color: #1a1a1a;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.2s ease, transform 0.15s ease;
+
+    &:hover {
+        background: #ffb300;
+        color: #1a1a1a;
+        transform: translateY(-1px);
+    }
+
+    svg {
+        font-size: 10px;
+    }
+}
+
+.aff-drawer-empty {
+    text-align: center;
+    padding: 32px 16px;
+    color: #999;
+    font-size: 14px;
 }
 
 // Property details styles
@@ -548,5 +755,69 @@
 
     .left {
         flex: 1;
+    }
+}
+
+// Responsive
+@media (max-width: 992px) {
+    .content {
+        flex-direction: column;
+        width: 100%;
+        padding: 16px 12px;
+    }
+
+    .right {
+        width: 100%;
+    }
+
+    .property-features .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .aff-float-btn {
+        bottom: 64px;
+        right: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding-top: 60px;
+    }
+
+    .property-features .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .select-img {
+        grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    }
+
+    .aff-float-btn {
+        bottom: 58px;
+        right: 10px;
+        padding: 7px 12px 7px 8px;
+        font-size: 12px;
+    }
+
+    .aff-float-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+    }
+
+    .aff-drawer-item {
+        flex-wrap: wrap;
+    }
+
+    .aff-drawer-btn {
+        width: 100%;
+        justify-content: center;
+        margin-top: 4px;
+    }
+
+    .aff-drawer-image {
+        width: 64px;
+        height: 64px;
     }
 }
