@@ -13,10 +13,10 @@ const { Text } = Typography;
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { requestRegister } from '../../config/request';
+import { logGaEvent } from '../../analytics/gaHelpers';
 
 function RegisterUser() {
     const [form] = Form.useForm();
-
     const navigate = useNavigate();
 
     const onFinish = async (values) => {
@@ -29,6 +29,10 @@ function RegisterUser() {
         };
         try {
             const res = await requestRegister(data);
+            
+            // GA4: Đăng ký email thành công
+            logGaEvent('sign_up', { method: 'email' });
+
             message.success(res.metadata.message);
             setTimeout(() => {
                 window.location.reload();
@@ -43,6 +47,10 @@ function RegisterUser() {
         const { credential } = response; // Nhận ID Token từ Google
         try {
             const res = await requestLoginGoogle(credential);
+            
+            // GA4: Đăng ký Google thành công
+            logGaEvent('sign_up', { method: 'google' });
+
             message.success(res.message);
             setTimeout(() => {
                 window.location.reload();

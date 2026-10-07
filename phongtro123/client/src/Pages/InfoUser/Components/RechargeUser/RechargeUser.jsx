@@ -1,9 +1,10 @@
 import classNames from 'classnames/bind';
 import styles from './RechargeUser.module.scss';
 import { Form, Input, Radio, Button, Row, Col, InputNumber, Image, Modal, Result, Table, Tag, Typography } from 'antd';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { requestCreateQrPayment, requestGetRechargeUser } from '../../../../config/request';
 import { useStore } from '../../../../hooks/useStore';
+import { logGaEvent } from '../../../../analytics/gaHelpers';
 
 import dayjs from 'dayjs';
 
@@ -19,6 +20,7 @@ function RechargeUser() {
     const [loading, setLoading] = useState(false);
 
     const { dataPayment, setDataPayment } = useStore();
+    const lastFiredTxnId = useRef(null);
 
     useEffect(() => {
         fetchPaymentHistory();
@@ -28,6 +30,26 @@ function RechargeUser() {
         if (dataPayment) {
             setPaymentData(dataPayment);
             setIsSuccessModalVisible(true);
+
+            // GA4: Sự kiện purchase
+            if (dataPayment.transactionId && dataPayment.transactionId !== lastFiredTxnId.current) {
+                lastFiredTxnId.current = dataPayment.transactionId;
+                logGaEvent('purchase', {
+                    transaction_id: dataPayment.transactionId,
+                    value: Number(dataPayment.amount),
+                    currency: 'VND',
+                    payment_type: dataPayment.typePayment,
+                    items: [
+                        {
+                            item_id: 'recharge_coin',
+                            item_name: 'Nạp Coin Homiehub',
+                            price: Number(dataPayment.amount),
+                            quantity: 1,
+                        },
+                    ],
+                });
+            }
+
             setTimeout(() => {
                 setDataPayment(null);
             }, 3000);
@@ -51,6 +73,20 @@ function RechargeUser() {
     const handleSubmit = async (values) => {
         setLoading(true);
         try {
+            // GA4: Sự kiện begin_checkout
+            logGaEvent('begin_checkout', {
+                value: Number(values.amount),
+                currency: 'VND',
+                items: [
+                    {
+                        item_id: 'recharge_coin',
+                        item_name: 'Nạp Coin Homiehub',
+                        price: Number(values.amount),
+                        quantity: 1,
+                    },
+                ],
+            });
+
             const res = await requestCreateQrPayment(values.amount);
             setQrPayment(res.metadata);
         } finally {
@@ -173,7 +209,7 @@ function RechargeUser() {
                         <Table
                             dataSource={paymentHistory}
                             columns={columns}
-                            rowKey="id"
+                            rowKey="_id"
                             loading={loading}
                             pagination={{ pageSize: 5 }}
                             className={cx('history-table')}

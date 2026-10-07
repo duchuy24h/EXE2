@@ -87,6 +87,7 @@ class PaymentsController {
                 coin: transaction.coin,
                 date: updated.paidAt,
                 typePayment: 'MB_QR',
+                transactionId: String(updated._id),
             });
         }
         return res.status(200).json({ message: 'Đã cộng tiền vào tài khoản' });
@@ -195,28 +196,37 @@ class PaymentsController {
         if (resultCode === '0') {
             const result = orderInfo.split(' ')[2];
             const findUser = await modelUser.findOne({ _id: result });
+
             if (findUser) {
                 const coin = Number(amount) / 1000;
-                findUser.coin += coin
+
+                findUser.coin += coin;
                 await findUser.save();
+
+                const newTransaction = await modelRechargeUser.create({
+                    userId: findUser._id,
+                    amount: Number(amount),
+                    typePayment: 'MOMO',
+                    status: 'success',
+                });
+
                 const socket = global.usersMap.get(findUser._id.toString());
+
                 if (socket) {
                     socket.emit('new-payment', {
                         userId: findUser._id,
-                        amount: amount,
+                        amount: Number(amount),
+                        coin: coin,
                         date: new Date(),
                         typePayment: 'MOMO',
+                        transactionId: String(newTransaction._id),
                     });
-                    await modelRechargeUser.create({
-                        userId: findUser._id,
-                        amount: amount,
-                        typePayment: 'MOMO',
-                        status: 'success',
-                    });
-                    return res.redirect(`http://localhost:5173/trang-ca-nhan`);
                 }
+
+                return res.redirect(`http://localhost:5173/trang-ca-nhan`);
             }
         }
+        return res.redirect(`http://localhost:5173/trang-ca-nhan`);
     }
 
     async checkPaymentVnpay(req, res) {
@@ -225,31 +235,39 @@ class PaymentsController {
         if (vnp_ResponseCode === '00') {
             const result = vnp_OrderInfo.split(' ')[2];
             const findUser = await modelUser.findOne({ _id: result });
+
             if (findUser) {
                 const amountVND = Number(vnp_Amount.slice(0, -2));
                 const coin = amountVND / 1000;
+
                 findUser.coin += coin;
                 await findUser.save();
+
+                const newTransaction = await modelRechargeUser.create({
+                    userId: findUser._id,
+                    amount: amountVND,
+                    typePayment: 'VNPAY',
+                    status: 'success',
+                });
+
                 const socket = global.usersMap.get(findUser._id.toString());
+
                 if (socket) {
                     socket.emit('new-payment', {
                         userId: findUser._id,
-                        amount: vnp_Amount.slice(0, -2),
+                        amount: amountVND,
+                        coin: coin,
                         date: new Date(),
                         typePayment: 'VNPAY',
+                        transactionId: String(newTransaction._id),
                     });
-                    await modelRechargeUser.create({
-                        userId: findUser._id,
-                        amount: vnp_Amount.slice(0, -2),
-                        typePayment: 'VNPAY',
-                        status: 'success',
-                    });
-                    return res.redirect(`http://localhost:5173/trang-ca-nhan`);
-                } else {
-                    return res.redirect(`http://localhost:5173/trang-ca-nhan`);
                 }
+
+                return res.redirect(`http://localhost:5173/trang-ca-nhan`);
             }
         }
+
+        return res.redirect(`http://localhost:5173/trang-ca-nhan`);
     }
 }
 module.exports = new PaymentsController();
