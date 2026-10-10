@@ -11,6 +11,7 @@ const modelRechargeUser = new Schema(
         status: { type: String, require: true, enum: ['pending', 'success', 'failed'] },
         transferCode: { type: String, index: true },
         transactionId: { type: String, index: true },
+        autoApproveAt: { type: Date, index: true },
         paidAt: { type: Date },
     },
     {

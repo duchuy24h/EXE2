@@ -82,6 +82,7 @@ const modelMessager = require('./models/Messager.model');
 const { askQuestion } = require('./utils/Chatbot/chatbot');
 const { AiSearch } = require('./utils/AISearch/AISearch');
 const socketServices = require('./services/socketServices');
+const controllerPayments = require('./controllers/payments.controller');
 
 app.use(express.static(path.join(__dirname, '../src')));
 app.use(cookiesParser());
@@ -91,6 +92,24 @@ app.use(bodyParser.urlencoded({ extended: true }));
 routes(app);
 
 connectDB();
+
+let isAutoApprovalRunning = false;
+const processAutoApprovedRecharges = async () => {
+    if (isAutoApprovalRunning) {
+        return;
+    }
+
+    isAutoApprovalRunning = true;
+    try {
+        await controllerPayments.processAutoApprovedRecharges();
+    } catch (error) {
+        console.error('Không thể tự động duyệt giao dịch nạp tiền:', error);
+    } finally {
+        isAutoApprovalRunning = false;
+    }
+};
+
+setInterval(processAutoApprovedRecharges, 15 * 1000);
 
 app.use((req, res, next) => {
     req.io = io;

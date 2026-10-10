@@ -20,77 +20,89 @@ class PaymentsController {
         }
 
         const transferCode = `PHONGTRO${String(id).slice(-6).toUpperCase()}${Date.now().toString().slice(-6)}`;
+        const coin = amount / 1000;
+        const autoApproveAt = new Date(Date.now() + 3 * 60 * 1000);
         await modelRechargeUser.create({
             userId: id,
             amountVND: amount,
-            coin: 0,
+            coin,
             typePayment: 'MB_QR',
             status: 'pending',
             transferCode,
+            autoApproveAt,
         });
 
         const qrUrl = `https://img.vietqr.io/image/MB-200455556669-compact2.png?amount=${amount}&addInfo=${transferCode}&accountName=NGUYEN%20DUC%20HUY`;
         return new OK({
             message: 'Tạo mã QR nạp tiền thành công',
-            metadata: { amount, transferCode, qrUrl },
+            metadata: { amount, transferCode, qrUrl, autoApproveAt },
         }).send(res);
     }
 
-    async receiveSepayWebhook(req, res) {
-        const configuredToken = process.env.SEPAY_WEBHOOK_TOKEN;
-        const authorization = req.headers.authorization || '';
-        const expectedAuthorization = [`Apikey ${configuredToken}`, `Bearer ${configuredToken}`];
-        if (!configuredToken || !expectedAuthorization.includes(authorization)) {
-            return res.status(401).json({ message: 'Webhook token không hợp lệ' });
-        }
+    async processAutoApprovedRecharges() {
+        while (true) {
+            const session = await modelRechargeUser.startSession();
+            let completedPayment = null;
 
-        const payload = req.body || {};
-        const transferAmount = Number(payload.transferAmount ?? payload.amount ?? payload.transfer_amount ?? 0);
-        const transferContent = String(payload.content || payload.description || payload.transferContent || payload.code || '');
-        const transactionId = String(payload.id || payload.referenceCode || payload.transactionId || '');
-        const transferCode = transferContent.match(/PHONGTRO[A-Z0-9]+/i)?.[0]?.toUpperCase();
-        const transaction = await modelRechargeUser.findOne({
-            transferCode,
-            status: 'pending',
-        });
+            try {
+                await session.withTransaction(async () => {
+                    const transaction = await modelRechargeUser
+                        .findOne({
+                            status: 'pending',
+                            autoApproveAt: { $lte: new Date() },
+                        })
+                        .sort({ autoApproveAt: 1 })
+                        .session(session);
 
-        if (!transaction) {
-            return res.status(200).json({ message: 'Giao dịch đã xử lý hoặc không khớp mã nạp' });
-        }
-        if (!Number.isFinite(transferAmount) || transferAmount < transaction.amountVND) {
-            return res.status(400).json({ message: 'Số tiền chuyển khoản không đủ' });
-        }
+                    if (!transaction) {
+                        return;
+                    }
 
-        const updated = await modelRechargeUser.findOneAndUpdate(
-            { _id: transaction._id, status: 'pending' },
-            { $set: { status: 'success', paidAt: new Date(), transactionId } },
-            { new: true },
-        );
-        if (!updated) {
-            return res.status(200).json({ message: 'Giao dịch đã xử lý' });
-        }
+                    const user = await modelUser.findById(transaction.userId).session(session);
+                    if (!user) {
+                        transaction.status = 'failed';
+                        await transaction.save({ session });
+                        return;
+                    }
 
-        const user = await modelUser.findByIdAndUpdate(
-            transaction.userId,
-            { $inc: { coin: transaction.coin } },
-            { new: true },
-        );
-        if (!user) {
-            throw new BadRequestError('Người dùng không tồn tại');
-        }
+                    const amountVND = Number(transaction.amountVND ?? transaction.amount ?? 0);
+                    if (!Number.isFinite(amountVND) || amountVND <= 0) {
+                        transaction.status = 'failed';
+                        await transaction.save({ session });
+                        return;
+                    }
 
-        const socket = global.usersMap?.get(String(user._id));
-        if (socket) {
-            socket.emit('new-payment', {
-                userId: user._id,
-                amount: transaction.amountVND,
-                coin: transaction.coin,
-                date: updated.paidAt,
-                typePayment: 'MB_QR',
-                transactionId: String(updated._id),
-            });
+                    const coin = transaction.coin > 0 ? transaction.coin : amountVND / 1000;
+                    transaction.status = 'success';
+                    transaction.coin = coin;
+                    transaction.paidAt = new Date();
+                    transaction.transactionId = `AUTO-${transaction._id}`;
+                    await transaction.save({ session });
+
+                    user.balance = Number(user.balance || 0) + coin;
+                    await user.save({ session });
+                    completedPayment = { transaction, user, amountVND, coin };
+                });
+            } finally {
+                await session.endSession();
+            }
+
+            if (!completedPayment) {
+                break;
+            }
+
+            const socket = global.usersMap?.get(String(completedPayment.user._id));
+            if (socket) {
+                socket.emit('new-payment', {
+                    userId: completedPayment.user._id,
+                    amount: completedPayment.amountVND,
+                    coin: completedPayment.coin,
+                    date: completedPayment.transaction.paidAt,
+                    typePayment: completedPayment.transaction.typePayment,
+                    transactionId: String(completedPayment.transaction._id),
+                });
+            }
         }
-        return res.status(200).json({ message: 'Đã cộng tiền vào tài khoản' });
     }
 
     async payments(req, res) {
@@ -200,7 +212,7 @@ class PaymentsController {
             if (findUser) {
                 const coin = Number(amount) / 1000;
 
-                findUser.coin += coin;
+                findUser.balance = Number(findUser.balance || 0) + coin;
                 await findUser.save();
 
                 const newTransaction = await modelRechargeUser.create({
@@ -240,7 +252,7 @@ class PaymentsController {
                 const amountVND = Number(vnp_Amount.slice(0, -2));
                 const coin = amountVND / 1000;
 
-                findUser.coin += coin;
+                findUser.balance = Number(findUser.balance || 0) + coin;
                 await findUser.save();
 
                 const newTransaction = await modelRechargeUser.create({

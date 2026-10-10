@@ -3,7 +3,7 @@ import styles from './Header.module.scss';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/images/homiehub-logo.svg';
 import { Dropdown, Menu, Avatar, Space } from 'antd';
-import { UserOutlined, LogoutOutlined, ProfileOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, ProfileOutlined, SearchOutlined, EditOutlined, DashboardOutlined } from '@ant-design/icons';
 
 import { useStore } from '../../hooks/useStore';
 import { useState } from 'react';
@@ -32,23 +32,30 @@ function Header() {
         }
     };
 
-    const menu = (
-        <Menu
-            items={[
+    const menuItems = [
+        {
+            key: 'profile',
+            icon: <ProfileOutlined />,
+            label: <Link to="/trang-ca-nhan">Trang cá nhân</Link>,
+        },
+        ...(dataUser?.isAdmin
+            ? [
                 {
-                    key: 'profile',
-                    icon: <ProfileOutlined />,
-                    label: <Link to="/trang-ca-nhan">Trang cá nhân</Link>,
+                    key: 'admin',
+                    icon: <DashboardOutlined />,
+                    label: <Link to="/admin">Trang quản trị</Link>,
                 },
-                {
-                    key: 'logout',
-                    icon: <LogoutOutlined />,
-                    label: 'Đăng xuất',
-                    onClick: handleLogout,
-                },
-            ]}
-        />
-    );
+            ]
+            : []),
+        {
+            key: 'logout',
+            icon: <LogoutOutlined />,
+            label: 'Đăng xuất',
+            onClick: handleLogout,
+        },
+    ];
+
+    const menu = <Menu items={menuItems} />;
 
     const handleNavigateSearch = (value) => {
         navigate(`/search/${value}`);

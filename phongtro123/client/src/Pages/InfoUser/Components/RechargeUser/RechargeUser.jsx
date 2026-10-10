@@ -19,7 +19,7 @@ function RechargeUser() {
     const [paymentHistory, setPaymentHistory] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    const { dataPayment, setDataPayment } = useStore();
+    const { dataPayment, setDataPayment, fetchAuth } = useStore();
     const lastFiredTxnId = useRef(null);
 
     useEffect(() => {
@@ -55,8 +55,11 @@ function RechargeUser() {
             }, 3000);
             // Refresh payment history after successful payment
             fetchPaymentHistory();
+            fetchAuth().catch((error) => {
+                console.error('Failed to refresh user balance:', error);
+            });
         }
-    }, [dataPayment]);
+    }, [dataPayment, fetchAuth, setDataPayment]);
 
     const fetchPaymentHistory = async () => {
         setLoading(true);
@@ -114,7 +117,7 @@ function RechargeUser() {
             title: 'Số tiền',
             dataIndex: 'amount',
             key: 'amount',
-            render: (amount, record) => formatCurrency(amount ?? record.amount),
+            render: (amount, record) => formatCurrency(amount ?? record.amountVND ?? record.amount ?? 0),
             width: 150,
         },
         {
@@ -151,7 +154,7 @@ function RechargeUser() {
             title: 'Ngày giao dịch',
             dataIndex: 'date',
             key: 'date',
-            render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+            render: (date, record) => dayjs(date ?? record.createdAt).format('DD/MM/YYYY HH:mm'),
             width: 180,
         },
     ];
@@ -197,7 +200,6 @@ function RechargeUser() {
                                 <p>Ngân hàng: MB Bank</p>
                                 <p>Số tiền: <strong>{formatCurrency(qrPayment.amount)}</strong></p>
                                 <p>Nội dung: <strong>{qrPayment.transferCode}</strong></p>
-                                <small>Tiền sẽ được cộng vào tài khoản sau khi hệ thống nhận diện giao dịch thành công.</small>
                             </div>
                         )}
                     </div>

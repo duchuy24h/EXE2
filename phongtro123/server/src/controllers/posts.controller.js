@@ -169,7 +169,7 @@ class controllerPosts {
             throw new BadRequestError('Gói đăng tin không hợp lệ');
         }
 
-        if (user.coin < pricePost.price) {
+        if (user.balance < pricePost.price) {
             throw new BadRequestError('Số Coin không đủ');
         }
 
@@ -194,7 +194,7 @@ class controllerPosts {
             isAffiliateDecor: Boolean(isAffiliateDecor) || normalizedAffiliateProducts.length > 0,
             affiliateProducts: normalizedAffiliateProducts,
         });
-        await modelUser.findByIdAndUpdate(id, { $inc: { coin: -pricePost.price } });
+        await modelUser.findByIdAndUpdate(id, { $inc: { balance: -pricePost.price } });
         return new Created({
             message: 'Post created successfully',
             metadata: post,

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Space, Modal, Descriptions, Tag } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import axios from 'axios';
 import { requestGetRechargeStats } from '../../../../config/request';
 
 function ManagerRechange() {
@@ -39,11 +37,16 @@ function ManagerRechange() {
             title: 'Trạng thái',
             dataIndex: 'status',
             key: 'status',
-            render: (status) => (
-                <span style={{ color: status === 'success' ? '#52c41a' : '#ff4d4f' }}>
-                    {status === 'success' ? 'Thành công' : 'Thất bại'}
-                </span>
-            ),
+            render: (status) => {
+                const statusConfig = {
+                    success: { color: '#52c41a', label: 'Thành công' },
+                    pending: { color: '#faad14', label: 'Đang xử lý' },
+                    failed: { color: '#ff4d4f', label: 'Thất bại' },
+                };
+                const currentStatus = statusConfig[status] || statusConfig.failed;
+
+                return <span style={{ color: currentStatus.color }}>{currentStatus.label}</span>;
+            },
         },
         {
             title: 'Ngày tạo',

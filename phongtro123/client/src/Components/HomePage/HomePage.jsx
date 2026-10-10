@@ -300,8 +300,8 @@ function HomePage() {
 
             <div className={cx('inner')}>
                 <div className={cx('header')}>
-                    <h1 className={cx('title')}>Kênh thông tin Phòng trọ số 1 Việt Nam</h1>
-                    <p className={cx('description')}>Đây là nơi bạn có thể tìm thấy thông tin và dịch vụ tốt nhất.</p>
+                    <h1 className={cx('title')}>Kênh thông tin Phòng trọ uy tín Việt Nam</h1>
+                    <p className={cx('description')}>Đây là nơi bạn có thể tìm thấy thông tin và dịch vụ tốt.</p>
                     <p className={cx('description-1')}>có {dataPost.length} tin đang cho thuê</p>
 
                     <div className={cx('actions')}>

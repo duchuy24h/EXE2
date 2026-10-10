@@ -126,7 +126,7 @@ function PassRoomDetailPage() {
                         )}
                         <div className={cx('balance')}>
                             Số dư hiện tại:{' '}
-                            <strong>{Number(dataUser?.balance || 0).toLocaleString('vi-VN')} VNĐ</strong>
+                            <strong>{Number(dataUser?.balance || 0).toLocaleString('vi-VN')} Coin</strong>
                         </div>
                     </div>
 

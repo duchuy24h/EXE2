@@ -7,7 +7,6 @@ const controllerPayments = require('../controllers/payments.controller');
 
 router.post('/api/payments', authUser, asyncHandler(controllerPayments.payments));
 router.post('/api/payments/qr', authUser, asyncHandler(controllerPayments.createQrPayment));
-router.post('/api/webhooks/sepay', asyncHandler(controllerPayments.receiveSepayWebhook));
 router.get('/api/check-payment-vnpay', asyncHandler(controllerPayments.checkPaymentVnpay));
 router.get('/api/check-payment-momo', asyncHandler(controllerPayments.checkPaymentMomo));
 
