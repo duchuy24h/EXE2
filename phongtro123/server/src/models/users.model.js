@@ -32,11 +32,6 @@ const modelUser = new Schema(
                 default: 'Sinh viên',
             },
             budget: { type: Number, default: 0 },
-            preferredGender: {
-                type: String,
-                enum: ['Tất cả', 'Nam', 'Nữ', 'Khác'],
-                default: 'Tất cả',
-            },
             lifestyle: [{ type: String }],
             interests: [{ type: String }],
             images: [{ type: String, default: [] }],

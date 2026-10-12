@@ -1,11 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { message } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { requestGetRoommateSuggestions, requestSwipeRoommate } from '../../config/request';
 import { useStore } from '../../hooks/useStore';
+import { EditOutlined, FilterOutlined, MessageOutlined } from '@ant-design/icons';
+import styles from './RoommateDiscover.module.scss';
 
 const FALLBACK_AVATAR =
     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80';
+
+const normalizeGender = (value) => {
+    if (typeof value !== 'string') return '';
+    const normalized = value
+        .trim()
+        .toLocaleLowerCase('vi')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    if (['nam', 'male', 'man'].includes(normalized)) return 'Nam';
+    if (['nu', 'female', 'woman'].includes(normalized)) return 'Nữ';
+    if (['khac', 'other', 'non-binary', 'nonbinary'].includes(normalized)) return 'Khác';
+    return '';
+};
 
 const isRenderableImageUrl = (url) => {
     if (!url || typeof url !== 'string') return false;
@@ -33,7 +48,8 @@ const resolveImageList = (profile) => {
 
 function RoommateDiscover() {
     const navigate = useNavigate();
-    const { setGlobalUsersMessage } = useStore();
+    const location = useLocation();
+    const { dataUser, setGlobalUsersMessage } = useStore();
     const [profiles, setProfiles] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [liked, setLiked] = useState(false);
@@ -41,32 +57,40 @@ function RoommateDiscover() {
     const [showGallery, setShowGallery] = useState(false);
     const [imageIndex, setImageIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [dragX, setDragX] = useState(0);
+    const [isSwipeAnimating, setIsSwipeAnimating] = useState(false);
+    const dragStartRef = useRef(null);
+    const suppressCardClickRef = useRef(false);
     const [filters, setFilters] = useState({
         location: 'Tất cả',
         budget: 'Tất cả',
-        gender: 'Tất cả',
         interests: [],
         lifestyle: [],
         distance: 'Tất cả',
         preferences: [],
     });
 
-    const buildSuggestionParams = () => {
+    const buildSuggestionParams = useCallback(() => {
         const params = {};
         if (filters.location && filters.location !== 'Tất cả') params.location = filters.location;
         if (filters.budget && filters.budget !== 'Tất cả') params.budget = filters.budget;
-        if (filters.gender && filters.gender !== 'Tất cả') params.gender = filters.gender;
         if (filters.lifestyle?.length) params.lifestyle = filters.lifestyle;
         if (filters.interests?.length) params.interests = filters.interests;
         if (filters.preferences?.length) params.preferences = filters.preferences;
         if (filters.distance && filters.distance !== 'Tất cả') params.distance = filters.distance;
         return params;
-    };
+    }, [
+        filters.location,
+        filters.budget,
+        filters.lifestyle,
+        filters.interests,
+        filters.preferences,
+        filters.distance,
+    ]);
 
     const advancedFilters = {
         locationOptions: ['Tất cả', 'Hà Nội', 'Đà Nẵng', 'Hồ Chí Minh', 'Bắc Ninh'],
         budgetOptions: ['Tất cả', 'Dưới 3 triệu', '3-5 triệu', '5-7 triệu', '7 triệu+'],
-        genderOptions: ['Tất cả', 'Nữ', 'Nam', 'Khác'],
         interestOptions: ['Yoga', 'Travel', 'Reading', 'Gym', 'Coffee', 'Make-up', 'Fashion', 'Pilates'],
         lifestyleOptions: ['Sạch sẽ', 'Yên tĩnh', 'Làm việc từ xa', 'Cuối tuần đi chơi', 'Dễ thích nghi'],
         distanceOptions: ['Tất cả', '5 km', '10 km', '20 km', '30 km', '50 km'],
@@ -74,31 +98,54 @@ function RoommateDiscover() {
     };
 
     useEffect(() => {
+        if (dataUser?._id && !dataUser?.roommateProfile?.location) {
+            navigate('/roommate/onboarding', { replace: true });
+        }
+    }, [dataUser, navigate]);
+
+    useEffect(() => {
         document.title = 'Discover - Ghép trọ';
+        const roommateGender = normalizeGender(dataUser?.roommateProfile?.gender);
+        let isActive = true;
+
         const fetchSuggestions = async () => {
+            setIsLoading(true);
+            setProfiles([]);
+            setCurrentIndex(0);
             try {
                 const response = await requestGetRoommateSuggestions(buildSuggestionParams());
-                if (response?.metadata?.length) {
-                    setProfiles(response.metadata);
+                const matchingProfiles = (response?.metadata || []).filter((profile) => {
+                    return !roommateGender || normalizeGender(profile.gender) === roommateGender;
+                });
+                if (isActive && matchingProfiles.length) {
+                    setProfiles(matchingProfiles);
                 } else {
-                    setProfiles([]);
+                    if (isActive) setProfiles([]);
                 }
             } catch (error) {
-                console.log('Roommate API error', error);
-                setProfiles([]);
+                if (isActive) {
+                    console.error('Roommate API error', error);
+                    message.error(error?.response?.data?.message || 'Không thể tải danh sách ghép trọ');
+                    setProfiles([]);
+                }
             } finally {
-                setIsLoading(false);
+                if (isActive) setIsLoading(false);
             }
         };
         fetchSuggestions();
+        return () => {
+            isActive = false;
+        };
     }, [
+        dataUser?.roommateProfile?.gender,
+        location.key,
         filters.location,
         filters.budget,
-        filters.gender,
         filters.lifestyle,
         filters.interests,
         filters.preferences,
         filters.distance,
+        buildSuggestionParams,
     ]);
 
     const currentProfile = useMemo(() => profiles[currentIndex], [profiles, currentIndex]);
@@ -106,11 +153,58 @@ function RoommateDiscover() {
 
     useEffect(() => {
         setImageIndex(0);
+        setDragX(0);
+        setIsSwipeAnimating(false);
     }, [currentProfile?._id]);
+
+    const handleCardPointerDown = (event) => {
+        if (event.button !== 0 || isSwipeAnimating || event.target.closest('button')) return;
+        dragStartRef.current = { x: event.clientX, y: event.clientY };
+        suppressCardClickRef.current = false;
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
+    const handleCardPointerMove = (event) => {
+        if (!dragStartRef.current || isSwipeAnimating) return;
+        const deltaX = event.clientX - dragStartRef.current.x;
+        const deltaY = event.clientY - dragStartRef.current.y;
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 8) {
+            suppressCardClickRef.current = true;
+            setDragX(deltaX);
+        }
+    };
+
+    const handleCardPointerUp = (event) => {
+        if (!dragStartRef.current) return;
+        const finalDeltaX = event.clientX - dragStartRef.current.x;
+        dragStartRef.current = null;
+        if (Math.abs(finalDeltaX) > 105) {
+            const direction = finalDeltaX > 0 ? 'right' : 'left';
+            setIsSwipeAnimating(true);
+            setDragX((direction === 'right' ? 1 : -1) * Math.max(window.innerWidth, 700));
+            window.setTimeout(() => handleSwipe(direction), 180);
+        } else {
+            setDragX(0);
+        }
+    };
+
+    const handleCardPointerCancel = () => {
+        dragStartRef.current = null;
+        setDragX(0);
+        setIsSwipeAnimating(false);
+    };
+
+    const handleCardClick = () => {
+        if (suppressCardClickRef.current) {
+            suppressCardClickRef.current = false;
+            return;
+        }
+        setShowGallery(true);
+    };
 
     if (isLoading) {
         return (
-            <div style={{ maxWidth: 520, margin: '40px auto', padding: 24, textAlign: 'center' }}>
+            <div className={styles.emptyState} style={{ maxWidth: 520, margin: '40px auto', padding: 24, textAlign: 'center' }}>
                 <h2>Đang tải gợi ý...</h2>
             </div>
         );
@@ -118,9 +212,26 @@ function RoommateDiscover() {
 
     if (!currentProfile) {
         return (
-            <div style={{ maxWidth: 520, margin: '40px auto', padding: 24, textAlign: 'center' }}>
+            <div className={styles.emptyState} style={{ maxWidth: 520, margin: '40px auto', padding: 24, textAlign: 'center' }}>
                 <h2>Chưa có người ghép trọ phù hợp</h2>
-                <p>Hãy thử thay đổi bộ lọc hoặc quay lại sau nhé.</p>
+                <p>
+                    Hãy thử thay đổi bộ lọc hoặc quay lại sau nhé. Danh sách ghép theo mục “Giới tính ghép trọ” trong hồ sơ,
+                    không dựa trên nội dung bio.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => navigate('/roommate/onboarding?edit=1')}
+                    style={{
+                        border: 0,
+                        borderRadius: 8,
+                        padding: '10px 16px',
+                        background: '#e94057',
+                        color: '#fff',
+                        cursor: 'pointer',
+                    }}
+                >
+                    Kiểm tra giới tính hồ sơ
+                </button>
             </div>
         );
     }
@@ -130,8 +241,27 @@ function RoommateDiscover() {
         setImageIndex((prev) => (prev + offset + currentImages.length) % currentImages.length);
     };
 
+    const advanceToNextProfile = () => {
+        const nextIndex = (currentIndex + 1) % profiles.length;
+        setCurrentIndex(nextIndex);
+        if (profiles[nextIndex]?._id === currentProfile?._id) {
+            setDragX(0);
+            setIsSwipeAnimating(false);
+        }
+    };
+
     const handleSwipe = async (direction) => {
         if (!currentProfile) return;
+        const currentGender = normalizeGender(dataUser?.roommateProfile?.gender);
+        if (
+            currentGender &&
+            normalizeGender(currentProfile.gender) !== currentGender
+        ) {
+            message.error('Hồ sơ này không cùng giới tính ghép trọ với bạn. Danh sách sẽ được tải lại.');
+            setProfiles([]);
+            setCurrentIndex(0);
+            return;
+        }
 
         try {
             const response = await requestSwipeRoommate({
@@ -158,7 +288,7 @@ function RoommateDiscover() {
                     duration: 2,
                     onClose: () => navigate('/roommate/chats'),
                 });
-                setCurrentIndex((prev) => (prev + 1) % profiles.length);
+                advanceToNextProfile();
                 return;
             }
 
@@ -167,10 +297,13 @@ function RoommateDiscover() {
             );
         } catch (error) {
             message.error(error?.response?.data?.message || 'Swipe thất bại');
+            setDragX(0);
+            setIsSwipeAnimating(false);
+            return;
         }
 
         setLiked(direction === 'right');
-        setCurrentIndex((prev) => (prev + 1) % profiles.length);
+        advanceToNextProfile();
     };
 
     const toggleFilterValue = (key, value) => {
@@ -187,10 +320,18 @@ function RoommateDiscover() {
     };
 
     const mainImageSrc = currentImages[imageIndex] || FALLBACK_AVATAR;
+    const activeFilterCount =
+        Number(filters.location !== 'Tất cả') +
+        Number(filters.budget !== 'Tất cả') +
+        filters.interests.length +
+        filters.lifestyle.length +
+        Number(filters.distance !== 'Tất cả') +
+        filters.preferences.length;
 
     return (
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0 80px', background: '#f5f0ee', minHeight: '100vh' }}>
+        <div className={styles.page}>
             <div
+                className={styles.legacyHeader}
                 style={{
                     width: '100%',
                     background: '#f4f2f1',
@@ -314,9 +455,41 @@ function RoommateDiscover() {
                 </div>
             </div>
 
-            <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '18px 20px 0' }}>
+            <div className={styles.content} style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '18px 20px 0' }}>
+                <header className={styles.hero}>
+                    <div>
+                        <div className={styles.eyebrow}>HOMIEHUB <span>•</span> ROOMMATE DISCOVER</div>
+                        <h1>Tìm người bạn cùng nhà</h1>
+                        <p>Khám phá những người phù hợp với nếp sống và kế hoạch thuê trọ của bạn.</p>
+                        <div className={styles.heroBadges}>
+                            <span>✓ Ghép cùng giới tính</span>
+                            <span>⌖ {dataUser?.roommateProfile?.location || 'Khu vực của bạn'}</span>
+                            <span>♧ {dataUser?.roommateProfile?.gender || 'Chưa chọn giới tính'}</span>
+                        </div>
+                    </div>
+                    <div className={styles.heroActions}>
+                        <button type="button" className={styles.secondaryButton} onClick={() => navigate('/roommate/onboarding?edit=1')}>
+                            <EditOutlined /> Sửa hồ sơ
+                        </button>
+                        <button type="button" className={styles.primaryButton} onClick={() => navigate('/roommate/chats')}>
+                            <MessageOutlined /> Tin nhắn
+                        </button>
+                    </div>
+                </header>
+
+                <div className={styles.toolbar}>
+                    <div>
+                        <strong>Hồ sơ phù hợp</strong>
+                        <span>Kết quả được lọc theo giới tính ghép trọ trong hồ sơ của bạn.</span>
+                    </div>
+                    <button type="button" className={styles.filterToggle} onClick={() => setShowFilters((prev) => !prev)}>
+                        <FilterOutlined /> {showFilters ? 'Ẩn bộ lọc' : 'Bộ lọc'}
+                        {activeFilterCount > 0 && <b>{activeFilterCount}</b>}
+                    </button>
+                </div>
                 {showFilters && (
                     <div
+                        className={styles.filterPanel}
                         style={{
                             background: '#f7f7f7',
                             borderRadius: 20,
@@ -325,7 +498,25 @@ function RoommateDiscover() {
                             border: '1px solid #ececec',
                         }}
                     >
-                        <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 10 }}>Bộ lọc nâng cao</div>
+                        <div className={styles.filterHeading}>
+                            <div><h2>Bộ lọc tìm kiếm</h2><p>Thu hẹp kết quả theo thói quen và nhu cầu của bạn.</p></div>
+                            {activeFilterCount > 0 && (
+                                <button
+                                    type="button"
+                                    className={styles.clearFilters}
+                                    onClick={() => setFilters({
+                                        location: 'Tất cả',
+                                        budget: 'Tất cả',
+                                        interests: [],
+                                        lifestyle: [],
+                                        distance: 'Tất cả',
+                                        preferences: [],
+                                    })}
+                                >
+                                    Xóa bộ lọc
+                                </button>
+                            )}
+                        </div>
 
                         <div style={{ marginBottom: 12 }}>
                             <div style={{ fontWeight: 600, marginBottom: 6 }}>Khu vực</div>
@@ -334,6 +525,7 @@ function RoommateDiscover() {
                                     <button
                                         key={item}
                                         type="button"
+                                        aria-pressed={filters.location === item}
                                         onClick={() => setFilters((prev) => ({ ...prev, location: item }))}
                                         style={{
                                             borderRadius: 999,
@@ -357,6 +549,7 @@ function RoommateDiscover() {
                                     <button
                                         key={item}
                                         type="button"
+                                        aria-pressed={filters.budget === item}
                                         onClick={() => setFilters((prev) => ({ ...prev, budget: item }))}
                                         style={{
                                             borderRadius: 999,
@@ -374,35 +567,13 @@ function RoommateDiscover() {
                         </div>
 
                         <div style={{ marginBottom: 12 }}>
-                            <div style={{ fontWeight: 600, marginBottom: 6 }}>Giới tính ưu tiên</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                {advancedFilters.genderOptions.map((item) => (
-                                    <button
-                                        key={item}
-                                        type="button"
-                                        onClick={() => setFilters((prev) => ({ ...prev, gender: item }))}
-                                        style={{
-                                            borderRadius: 999,
-                                            border: filters.gender === item ? '1px solid #111' : '1px solid #ddd',
-                                            background: filters.gender === item ? '#111' : '#fff',
-                                            color: filters.gender === item ? '#fff' : '#111',
-                                            padding: '6px 10px',
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        {item}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div style={{ marginBottom: 12 }}>
                             <div style={{ fontWeight: 600, marginBottom: 6 }}>Sở thích</div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                 {advancedFilters.interestOptions.map((item) => (
                                     <button
                                         key={item}
                                         type="button"
+                                        aria-pressed={filters.interests.includes(item)}
                                         onClick={() => toggleFilterValue('interests', item)}
                                         style={{
                                             borderRadius: 999,
@@ -426,6 +597,7 @@ function RoommateDiscover() {
                                     <button
                                         key={item}
                                         type="button"
+                                        aria-pressed={filters.lifestyle.includes(item)}
                                         onClick={() => toggleFilterValue('lifestyle', item)}
                                         style={{
                                             borderRadius: 999,
@@ -449,6 +621,7 @@ function RoommateDiscover() {
                                     <button
                                         key={item}
                                         type="button"
+                                        aria-pressed={filters.distance === item}
                                         onClick={() => setFilters((prev) => ({ ...prev, distance: item }))}
                                         style={{
                                             borderRadius: 999,
@@ -472,6 +645,7 @@ function RoommateDiscover() {
                                     <button
                                         key={item}
                                         type="button"
+                                        aria-pressed={filters.preferences.includes(item)}
                                         onClick={() => toggleFilterValue('preferences', item)}
                                         style={{
                                             borderRadius: 999,
@@ -492,8 +666,13 @@ function RoommateDiscover() {
                     </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'center', width: '100%', paddingTop: 18 }}>
+                <div className={styles.cardStage} style={{ display: 'flex', justifyContent: 'center', width: '100%', paddingTop: 18 }}>
                     <div
+                        className={styles.profileCard}
+                        onPointerDown={handleCardPointerDown}
+                        onPointerMove={handleCardPointerMove}
+                        onPointerUp={handleCardPointerUp}
+                        onPointerCancel={handleCardPointerCancel}
                         style={{
                             position: 'relative',
                             width: 420,
@@ -502,10 +681,29 @@ function RoommateDiscover() {
                             overflow: 'hidden',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                             background: '#eee',
+                            transform: `translateX(${dragX}px) rotate(${dragX * 0.045}deg)`,
+                            transition: dragStartRef.current
+                                ? 'none'
+                                : 'transform 220ms ease, opacity 220ms ease',
+                            opacity: isSwipeAnimating ? 0 : 1,
+                            cursor: dragStartRef.current ? 'grabbing' : 'grab',
+                            touchAction: 'pan-y',
                         }}
                     >
                         <div
-                            onClick={() => setShowGallery(true)}
+                            className={`${styles.swipeStamp} ${styles.likeStamp}`}
+                            style={{ opacity: Math.min(Math.max(dragX / 90, 0), 1) }}
+                        >
+                            THÍCH
+                        </div>
+                        <div
+                            className={`${styles.swipeStamp} ${styles.passStamp}`}
+                            style={{ opacity: Math.min(Math.max(-dragX / 90, 0), 1) }}
+                        >
+                            BỎ QUA
+                        </div>
+                        <div
+                            onClick={handleCardClick}
                             style={{
                                 position: 'relative',
                                 width: '100%',
@@ -623,9 +821,19 @@ function RoommateDiscover() {
                                 <div style={{ color: 'white', fontSize: 20, marginTop: 8 }}>
                                     {currentProfile.address || currentProfile.location}
                                 </div>
+                                <div className={styles.profileFacts}>
+                                    <span>{currentProfile.gender}</span>
+                                    <span>{currentProfile.studentStatus || 'Đang tìm bạn ở ghép'}</span>
+                                    {currentProfile.budget && <span>{currentProfile.budget}/tháng</span>}
+                                </div>
                                 <div style={{ color: '#fff', fontSize: 18, marginTop: 8, opacity: 0.95 }}>
                                     {currentProfile.bio}
                                 </div>
+                                {!!currentProfile.lifestyle?.length && (
+                                    <div className={styles.profileTags}>
+                                        {currentProfile.lifestyle.slice(0, 3).map((item) => <span key={item}>{item}</span>)}
+                                    </div>
+                                )}
                             </div>
 
                             <div
@@ -672,8 +880,11 @@ function RoommateDiscover() {
                     </div>
                 </div>
 
+                <div className={styles.dragHint}>Kéo thẻ sang trái để bỏ qua · Kéo sang phải để thích</div>
+
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 28, marginTop: 26 }}>
                     <button
+                        className={styles.passButton}
                         onClick={() => handleSwipe('left')}
                         style={{
                             width: 100,
@@ -692,6 +903,7 @@ function RoommateDiscover() {
                     </button>
 
                     <button
+                        className={styles.likeButton}
                         onClick={() => handleSwipe('right')}
                         style={{
                             width: 100,

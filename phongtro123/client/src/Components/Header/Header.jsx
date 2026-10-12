@@ -1,20 +1,18 @@
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import { Link, useNavigate } from 'react-router-dom';
-import logo from '../../assets/images/homiehub-logo.svg';
+import logo from '../../assets/images/homiehub-logo-header.png';
 import { Dropdown, Menu, Avatar, Space } from 'antd';
 import { UserOutlined, LogoutOutlined, ProfileOutlined, SearchOutlined, EditOutlined, DashboardOutlined } from '@ant-design/icons';
 
 import { useStore } from '../../hooks/useStore';
 import { useState } from 'react';
 import { requestLogout } from '../../config/request';
-import { useSocket } from '../../hooks/useSocket';
 
 const cx = classNames.bind(styles);
 
 function Header() {
     const { dataUser, dataSearch, setValueSearch } = useStore();
-    const { dataMessagersUser } = useSocket();
 
     const navigate = useNavigate();
 
@@ -61,7 +59,12 @@ function Header() {
         navigate(`/search/${value}`);
     };
 
-    const isRoommateReady = !!dataUser?._id && dataUser?.emailVerified && dataUser?.roommateProfile && dataUser.roommateProfile.location;
+    const hasRoommateProfile = !!dataUser?._id && dataUser?.roommateProfile?.location;
+    const roommatePath = !dataUser?._id
+        ? '/login'
+        : hasRoommateProfile
+            ? '/roommate/discover'
+            : '/roommate/onboarding';
 
     return (
         <div className={cx('wrapper')}>
@@ -100,10 +103,13 @@ function Header() {
                     )}
                 </div>
                 <div className={cx('actions')}>
-                    <Link to={isRoommateReady ? '/roommate/discover' : '/roommate/verify'} className={cx('btn-roommate')}>
+                    <Link to={roommatePath} className={cx('btn-roommate')}>
                         Tìm người ghép trọ
                     </Link>
-                    {dataUser._id && dataUser?.emailVerified && (
+                    <Link to="/affiliate" className={cx('btn-roommate')}>
+                        Affiliate
+                    </Link>
+                    {hasRoommateProfile && (
                         <Link
                             to="/roommate/onboarding?edit=1"
                             style={{

@@ -29,6 +29,7 @@ function handleImgError(e) {
 const initialFilters = {
     kind: '',
     category: '',
+    itemCategory: '',
     location: '',
     decorStyle: '',
     minPrice: '',
@@ -44,7 +45,7 @@ function PassRoomPage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        document.title = 'Pass đồ trọ & Affiliate decor';
+        document.title = 'Chợ pass đồ trọ';
 
         fetchPassRooms();
     }, []);
@@ -79,10 +80,11 @@ function PassRoomPage() {
     const handleChange = (e) => {
         const { name, value } = e.target;
 
-        setFilters((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setFilters((prev) => (
+            name === 'kind'
+                ? { ...prev, kind: value, category: '', itemCategory: '', decorStyle: '' }
+                : { ...prev, [name]: value }
+        ));
     };
 
     const handleFilter = async (e) => {
@@ -122,17 +124,16 @@ function PassRoomPage() {
             <div className={cx('hero')}>
                 <div className={cx('heroContent')}>
                     <span className={cx('eyebrow')}>
-                        Dịch vụ nâng cấp
+                        Mua bán đồ dùng
                     </span>
 
                     <h1>
-                        Pass đồ trọ & Affiliate decor
+                        Chợ pass đồ trọ
                     </h1>
 
                     <p>
-                        Gói bài nổi bật, phong cách sống đẹp,
-                        decor chuẩn khu vực và pass đồ trọ giúp
-                        chủ nhà tiếp cận khách hàng đúng nhu cầu.
+                        Đăng bán đồ dùng đã qua sử dụng, tìm món đồ phù hợp
+                        và nhắn tin trực tiếp với người đăng để trao đổi mua bán.
                     </p>
                 </div>
 
@@ -162,12 +163,12 @@ function PassRoomPage() {
                                 items.filter(
                                     (item) =>
                                         item.kind ===
-                                        'pass-room'
+                                        'pass-item'
                                 ).length
                             }
                         </strong>
 
-                        <span>Pass đồ trọ</span>
+                        <span>Tin pass đồ</span>
                     </div>
                 </div>
             </div>
@@ -205,12 +206,35 @@ function PassRoomPage() {
                             </option>
 
                             <option value="pass-room">
-                                Pass đồ trọ
+                                Pass phòng trọ
+                            </option>
+
+                            <option value="pass-item">
+                                Đồ đang pass
                             </option>
 
                             <option value="affiliate-decor">
                                 Affiliate decor
                             </option>
+                        </select>
+                    </div>
+
+                    <div className={cx('field')}>
+                        <label htmlFor="itemCategory">
+                            Danh mục đồ
+                        </label>
+                        <select
+                            id="itemCategory"
+                            name="itemCategory"
+                            value={filters.itemCategory}
+                            onChange={handleChange}
+                        >
+                            <option value="">Tất cả đồ dùng</option>
+                            <option value="noi-that">Nội thất</option>
+                            <option value="dien-tu">Đồ điện tử</option>
+                            <option value="do-gia-dung">Đồ gia dụng</option>
+                            <option value="do-trang-tri">Đồ trang trí</option>
+                            <option value="khac">Khác</option>
                         </select>
                     </div>
 
@@ -465,10 +489,11 @@ function PassRoomPage() {
                                             : 'tagPass'
                                     )}
                                 >
-                                    {item.kind ===
-                                        'affiliate-decor'
-                                        ? 'Affiliate decor'
-                                        : 'Pass đồ trọ'}
+                                    {item.kind === 'pass-item'
+                                        ? 'Đồ đang pass'
+                                        : item.kind === 'affiliate-decor'
+                                            ? 'Affiliate decor'
+                                            : 'Pass phòng trọ'}
                                 </span>
                             </div>
 
@@ -492,7 +517,15 @@ function PassRoomPage() {
                                     </strong>
 
                                     <span>
-                                        {item.area} m²
+                                        {item.kind === 'pass-item'
+                                            ? ({
+                                                'noi-that': 'Nội thất',
+                                                'dien-tu': 'Điện tử',
+                                                'do-gia-dung': 'Gia dụng',
+                                                'do-trang-tri': 'Trang trí',
+                                                khac: 'Khác',
+                                            }[item.itemCategory] || 'Đồ dùng')
+                                            : `${item.area} m²`}
                                     </span>
                                 </div>
                             </div>

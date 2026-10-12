@@ -6,7 +6,6 @@ const modelKeyWordSearch = require('../models/keyWordSearch.model');
 const modelOtp = require('../models/otp.model');
 
 const sendMailForgotPassword = require('../utils/SendMail/sendMailForgotPassword');
-const sendMailVerifyRoommate = require('../utils/SendMail/sendMailVerifyRoommate');
 const { BadRequestError } = require('../core/error.response');
 const { createApiKey, createToken, createRefreshToken, verifyToken } = require('../services/tokenSevices');
 const { Created, OK } = require('../core/success.response');
@@ -18,10 +17,40 @@ const otpGenerator = require('otp-generator');
 const { jwtDecode } = require('jwt-decode');
 
 const { AiSearchKeyword } = require('../utils/AISearch/AISearch');
+const { normalizeRoommateGender } = require('../utils/roommateGender');
 
 // Domain chung cho cookie (vd: .homiehub.com.vn) để frontend và backend khác subdomain vẫn nhận được.
 // Để trống trên localhost thì cookie là host-only (mặc định).
 const cookieDomain = process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {};
+
+const normalizeRoommateImages = (images, fallback = []) => {
+    const values = Array.isArray(images) ? images : fallback;
+    if (values.length > 6) {
+        throw new BadRequestError('Hồ sơ ghép trọ được thêm tối đa 6 ảnh');
+    }
+
+    return values.map((image, index) => {
+        if (typeof image !== 'string' || !image.trim()) {
+            throw new BadRequestError(`Địa chỉ ảnh thứ ${index + 1} không hợp lệ`);
+        }
+
+        let parsed;
+        try {
+            parsed = new URL(image.trim());
+        } catch {
+            throw new BadRequestError(`Ảnh thứ ${index + 1} phải là URL công khai http/https`);
+        }
+
+        if (
+            !['http:', 'https:'].includes(parsed.protocol) ||
+            ['localhost', '127.0.0.1', '0.0.0.0'].includes(parsed.hostname)
+        ) {
+            throw new BadRequestError(`Ảnh thứ ${index + 1} phải là URL công khai http/https`);
+        }
+
+        return parsed.toString();
+    });
+};
 
 class controllerUsers {
     async register(req, res) {
@@ -515,32 +544,33 @@ class controllerUsers {
             gender,
             studentStatus,
             budget,
-            preferredGender,
             lifestyle,
             interests,
             images,
             distanceRadius,
             preferences,
             isLookingForRoommate,
-            avatar,
         } = req.body;
 
         const user = await modelUser.findById(id);
         if (!user) {
             throw new BadRequestError('Người dùng không tồn tại');
         }
+        const roommateGender = normalizeRoommateGender(gender || user.roommateProfile?.gender);
+        if (!roommateGender) {
+            throw new BadRequestError('Vui lòng chọn giới tính hợp lệ');
+        }
 
-        const profileImages = Array.isArray(images) ? images.filter(Boolean) : user.roommateProfile?.images || [];
+        const profileImages = normalizeRoommateImages(images, user.roommateProfile?.images || []);
 
         user.roommateProfile = {
             ...user.roommateProfile,
             bio: bio || user.roommateProfile?.bio || '',
             location: location || user.roommateProfile?.location || user.address || '',
             age: Number(age || user.roommateProfile?.age || 22),
-            gender: gender || user.roommateProfile?.gender || 'Khác',
+            gender: roommateGender,
             studentStatus: studentStatus || user.roommateProfile?.studentStatus || 'Sinh viên',
             budget: Number(budget || user.roommateProfile?.budget || 0),
-            preferredGender: preferredGender || user.roommateProfile?.preferredGender || 'Tất cả',
             lifestyle: Array.isArray(lifestyle) ? lifestyle : user.roommateProfile?.lifestyle || [],
             interests: Array.isArray(interests) ? interests : user.roommateProfile?.interests || [],
             images: profileImages,
@@ -551,7 +581,7 @@ class controllerUsers {
 
         user.roommateModeEnabled = true;
         user.isActive = true;
-        const primaryAvatar = avatar || profileImages[0] || user.avatar;
+        const primaryAvatar = profileImages[0] || user.avatar;
         if (primaryAvatar) {
             user.avatar = primaryAvatar;
         }
@@ -561,9 +591,11 @@ class controllerUsers {
 
         await user.save();
 
+        const savedUser = await modelUser.findById(id).select('roommateProfile.gender');
+
         return new OK({
             message: 'Lưu hồ sơ ghép trọ thành công',
-            metadata: user.roommateProfile,
+            metadata: savedUser.roommateProfile,
         }).send(res);
     }
 
@@ -707,77 +739,6 @@ class controllerUsers {
             await modelKeyWordSearch.create({ title, count: 1 });
         }
         return new OK({ message: 'Thêm từ khóa tìm kiếm thành công' }).send(res);
-    }
-
-    async sendRoommateOtp(req, res) {
-        const { email } = req.body;
-        const user = await modelUser.findById(req.user.id);
-
-        if (!user) {
-            throw new BadRequestError('Người dùng không tồn tại');
-        }
-
-        const targetEmail = email || user.email;
-        if (!targetEmail) {
-            throw new BadRequestError('Vui lòng nhập email để xác minh');
-        }
-
-        const otp = await otpGenerator.generate(6, {
-            digits: true,
-            lowerCaseAlphabets: false,
-            upperCaseAlphabets: false,
-            specialChars: false,
-        });
-
-        const saltRounds = 10;
-        const hashOtp = bcrypt.hashSync(otp, saltRounds);
-
-        await modelOtp.create({
-            email: targetEmail,
-            otp: hashOtp,
-            type: 'verifyAccount',
-        });
-
-        await sendMailVerifyRoommate(targetEmail, otp);
-
-        return new OK({
-            message: 'Mã OTP xác minh email đã được gửi',
-            metadata: { email: targetEmail },
-        }).send(res);
-    }
-
-    async verifyRoommateOtp(req, res) {
-        const { otp } = req.body;
-        const user = await modelUser.findById(req.user.id);
-
-        if (!user) {
-            throw new BadRequestError('Người dùng không tồn tại');
-        }
-
-        if (!otp) {
-            throw new BadRequestError('Vui lòng nhập mã OTP');
-        }
-
-        const latestOtp = await modelOtp.findOne({ email: user.email }).sort({ createdAt: -1 });
-        if (!latestOtp) {
-            throw new BadRequestError('Mã OTP không tồn tại hoặc đã hết hạn');
-        }
-
-        const isMatch = bcrypt.compareSync(otp, latestOtp.otp);
-        if (!isMatch) {
-            throw new BadRequestError('Mã OTP không chính xác');
-        }
-
-        user.emailVerified = true;
-        user.roommateModeEnabled = true;
-        user.isActive = true;
-        await user.save();
-        await modelOtp.deleteOne({ _id: latestOtp._id });
-
-        return new OK({
-            message: 'Xác minh email thành công. Bạn có thể dùng tính năng tìm bạn ở ghép',
-            metadata: { emailVerified: true, roommateModeEnabled: true },
-        }).send(res);
     }
 
     async forgotPassword(req, res) {

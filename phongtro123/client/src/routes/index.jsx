@@ -10,11 +10,12 @@ import Layout from '../Components/Layout/Layout';
 import HomePage from '../Components/HomePage/HomePage';
 import PassRoomPage from '../Pages/PassRoom/PassRoomPage';
 import PassRoomDetailPage from '../Pages/PassRoom/PassRoomDetailPage';
-import RoommateVerify from '../Pages/Roommate/RoommateVerify';
 import RoommateOnboarding from '../Pages/Roommate/RoommateOnboarding';
 import RoommateDiscover from '../Pages/Roommate/RoommateDiscover';
 import RoommateLikedYou from '../Pages/Roommate/RoommateLikedYou';
 import RoommateChats from '../Pages/Roommate/RoommateChats';
+import AffiliatePage from '../Pages/Affiliate/AffiliatePage';
+import { Navigate } from 'react-router-dom';
 
 export const publicRoutes = [
     {
@@ -25,9 +26,10 @@ export const publicRoutes = [
             { path: 'chi-tiet-tin-dang/:id', element: <DetailPost /> },
             { path: 'pass-room', element: <PassRoomPage /> },
             { path: 'pass-room/:id', element: <PassRoomDetailPage /> },
+            { path: 'affiliate', element: <AffiliatePage /> },
             { path: 'trang-ca-nhan', element: <InfoUser /> },
             { path: 'search/:value', element: <AISearch /> },
-            { path: 'roommate/verify', element: <RoommateVerify /> },
+            { path: 'roommate/verify', element: <Navigate to="/roommate/onboarding" replace /> },
             { path: 'roommate/onboarding', element: <RoommateOnboarding /> },
             { path: 'roommate/discover', element: <RoommateDiscover /> },
             { path: 'roommate/liked-you', element: <RoommateLikedYou /> },

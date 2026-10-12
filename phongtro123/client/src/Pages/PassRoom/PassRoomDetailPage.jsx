@@ -6,6 +6,7 @@ import styles from './PassRoomDetailPage.module.scss';
 import { requestGetPassRoomById, requestPurchasePassRoom } from '../../config/request';
 import { useStore } from '../../hooks/useStore';
 import imgDefault from '../../assets/images/img_default.svg';
+import ChatButton from '../../utils/ChatButton/ChatButton';
 
 const cx = classNames.bind(styles);
 
@@ -66,6 +67,14 @@ function PassRoomDetailPage() {
     };
 
     const hasShopLink = Boolean(item?.shopLink);
+    const isPassItem = item?.kind === 'pass-item';
+    const itemCategoryLabels = {
+        'noi-that': 'Nội thất',
+        'dien-tu': 'Đồ điện tử',
+        'do-gia-dung': 'Đồ gia dụng',
+        'do-trang-tri': 'Đồ trang trí',
+        khac: 'Khác',
+    };
 
     if (!item) {
         return <div className={cx('loading')}>Đang tải chi tiết...</div>;
@@ -104,31 +113,54 @@ function PassRoomDetailPage() {
 
                 <div className={cx('info')}>
                     <span className={cx(item.kind === 'affiliate-decor' ? 'badgeDecor' : 'badgePass')}>
-                        {item.kind === 'affiliate-decor' ? 'Affiliate decor' : 'Pass đồ trọ'}
+                        {isPassItem
+                            ? 'Đồ đang pass'
+                            : item.kind === 'affiliate-decor'
+                                ? 'Affiliate decor'
+                                : 'Pass phòng trọ'}
                     </span>
                     <h1>{item.title}</h1>
                     <div className={cx('metaRow')}>
                         <span>{item.location}</span>
-                        <span>{item.area} m²</span>
+                        <span>{isPassItem ? itemCategoryLabels[item.itemCategory] || 'Đồ dùng' : `${item.area} m²`}</span>
                     </div>
-                    <div className={cx('price')}>{Number(item.price || 0).toLocaleString('vi-VN')} VNĐ</div>
+                    <div className={cx('price')}>
+                        {Number(item.price || 0) === 0
+                            ? 'Miễn phí'
+                            : `${Number(item.price || 0).toLocaleString('vi-VN')} VNĐ`}
+                    </div>
                     <p>{item.description}</p>
 
-                    <div className={cx('actions')}>
-                        {hasShopLink ? (
-                            <Button type="primary" size="large" href={item.shopLink} target="_blank" rel="noreferrer">
-                                Xem quảng cáo / Mua ngay
-                            </Button>
-                        ) : (
-                            <Button type="primary" size="large" loading={loading} onClick={handlePurchase}>
-                                Mua gói - trừ tiền ngay
-                            </Button>
-                        )}
-                        <div className={cx('balance')}>
-                            Số dư hiện tại:{' '}
-                            <strong>{Number(dataUser?.balance || 0).toLocaleString('vi-VN')} Coin</strong>
+                    {isPassItem ? (
+                        <div className={cx('actions')}>
+                            {item.seller?._id && (
+                                <ChatButton
+                                    userId={item.seller._id}
+                                    username={item.seller.fullName}
+                                    avatar={item.seller.avatar}
+                                    buttonText="Nhắn tin cho người bán"
+                                    fullWidth
+                                />
+                            )}
+                            <div className={cx('balance')}>Nhắn tin để hỏi thêm thông tin và hẹn mua trực tiếp với người đăng.</div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className={cx('actions')}>
+                            {hasShopLink ? (
+                                <Button type="primary" size="large" href={item.shopLink} target="_blank" rel="noreferrer">
+                                    Xem quảng cáo / Mua ngay
+                                </Button>
+                            ) : (
+                                <Button type="primary" size="large" loading={loading} onClick={handlePurchase}>
+                                    Mua gói - trừ tiền ngay
+                                </Button>
+                            )}
+                            <div className={cx('balance')}>
+                                Số dư hiện tại:{' '}
+                                <strong>{Number(dataUser?.balance || 0).toLocaleString('vi-VN')} Coin</strong>
+                            </div>
+                        </div>
+                    )}
 
                     {hasShopLink && (
                         <div className={cx('shopLinkBox')}>

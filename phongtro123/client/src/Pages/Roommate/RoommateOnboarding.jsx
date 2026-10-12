@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, Checkbox, Input, InputNumber, Select, message } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { requestSaveRoommateProfile, requestUploadImages } from '../../config/request';
+import { requestSaveRoommateProfile } from '../../config/request';
 import { useStore } from '../../hooks/useStore';
+import styles from './RoommateOnboarding.module.scss';
 
 const genderOptions = ['Nam', 'Nữ', 'Khác'];
 const studentStatusOptions = ['Sinh viên', 'Đã tốt nghiệp', 'Đi làm', 'Khác'];
-const preferredGenderOptions = ['Tất cả', 'Nam', 'Nữ', 'Khác'];
 const lifestyleOptions = ['Sạch sẽ', 'Yên tĩnh', 'Làm việc từ xa', 'Cuối tuần đi chơi', 'Dễ thích nghi', 'Thích đi chơi', 'Ngủ sớm'];
 const interestOptions = ['Yoga', 'Travel', 'Reading', 'Gym', 'Coffee', 'Music', 'Gaming', 'Film', 'Study', 'Cooking'];
 const preferenceOptions = ['Không hút thuốc', 'Làm việc từ xa', 'Có pet', 'Không có pet', 'Tự do về giờ giấc'];
@@ -22,10 +22,12 @@ const isRenderableImageUrl = (url) => {
     if (/^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('/Users/') || value.startsWith('/home/')) {
         return false;
     }
-    if (value.startsWith('/uploads/')) return true;
     try {
         const parsed = new URL(value);
-        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        return (
+            ['http:', 'https:'].includes(parsed.protocol) &&
+            !['localhost', '127.0.0.1', '0.0.0.0'].includes(parsed.hostname)
+        );
     } catch {
         return false;
     }
@@ -34,21 +36,20 @@ const isRenderableImageUrl = (url) => {
 function RoommateOnboarding() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { dataUser } = useStore();
+    const { dataUser, fetchAuth } = useStore();
     const isEditMode = new URLSearchParams(location.search).get('edit') === '1';
     const [avatarUrl, setAvatarUrl] = useState(
         isRenderableImageUrl(dataUser?.avatar) ? dataUser.avatar : '',
     );
     const [profileImages, setProfileImages] = useState([]);
-    const fileInputRef = useRef(null);
+    const [imageUrlInput, setImageUrlInput] = useState('');
     const [formData, setFormData] = useState({
         bio: '',
         location: 'Hà Nội',
         age: 22,
-        gender: 'Nữ',
+        gender: '',
         studentStatus: 'Sinh viên',
         budget: 4000000,
-        preferredGender: 'Tất cả',
         lifestyle: ['Sạch sẽ', 'Yên tĩnh'],
         interests: ['Travel', 'Reading'],
         distanceRadius: 20,
@@ -84,7 +85,6 @@ function RoommateOnboarding() {
                 gender: profile.gender || prev.gender,
                 studentStatus: profile.studentStatus || prev.studentStatus,
                 budget: profile.budget || prev.budget,
-                preferredGender: profile.preferredGender || prev.preferredGender,
                 lifestyle:
                     Array.isArray(profile.lifestyle) && profile.lifestyle.length
                         ? profile.lifestyle
@@ -109,7 +109,6 @@ function RoommateOnboarding() {
     useEffect(() => {
         const hasValidRoommateProfile =
             !!dataUser?._id &&
-            dataUser?.emailVerified &&
             dataUser?.roommateProfile &&
             dataUser.roommateProfile.location;
         if (hasValidRoommateProfile && !isEditMode) {
@@ -121,48 +120,29 @@ function RoommateOnboarding() {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
-    const handleSelectImages = async (e) => {
-        const files = Array.from(e.target.files || []);
-        if (!files.length) return;
-
-        const invalidFile = files.find((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type));
-        if (invalidFile) {
-            message.error('Chỉ cho phép JPG, PNG hoặc WEBP');
+    const handleAddImageUrl = () => {
+        const value = imageUrlInput.trim();
+        if (!isRenderableImageUrl(value) || !/^https?:\/\//i.test(value)) {
+            message.error('Vui lòng nhập địa chỉ ảnh công khai bắt đầu bằng http:// hoặc https://');
             return;
         }
-
-        const oversized = files.find((file) => file.size > 2 * 1024 * 1024);
-        if (oversized) {
-            message.error('Mỗi ảnh phải nhỏ hơn 2MB');
+        if (/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(new URL(value).hostname)) {
+            message.error('Địa chỉ ảnh phải truy cập được từ internet, không dùng localhost');
             return;
         }
-
-        if (profileImages.length + files.length > 6) {
+        if (profileImages.includes(value)) {
+            message.warning('Địa chỉ ảnh này đã được thêm');
+            return;
+        }
+        if (profileImages.length >= 6) {
             message.error('Tối đa 6 ảnh');
             return;
         }
 
-        const formPayload = new FormData();
-        files.forEach((file) => formPayload.append('images', file));
-
-        try {
-            const response = await requestUploadImages(formPayload);
-            const uploadedImages = (response?.images || []).filter(isRenderableImageUrl);
-            if (!uploadedImages.length) {
-                message.error('Server không trả về URL ảnh hợp lệ');
-                return;
-            }
-            const nextImages = [...profileImages, ...uploadedImages].slice(0, 6);
-            setProfileImages(nextImages);
-            setAvatarUrl(nextImages[0] || avatarUrl);
-            message.success(`Đã upload ${uploadedImages.length} ảnh`);
-        } catch (error) {
-            message.error(error?.response?.data?.message || 'Không thể upload ảnh');
-        } finally {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
+        const nextImages = [...profileImages, value];
+        setProfileImages(nextImages);
+        setAvatarUrl(nextImages[0]);
+        setImageUrlInput('');
     };
 
     const removeImage = (imageUrl) => {
@@ -186,26 +166,32 @@ function RoommateOnboarding() {
             return;
         }
 
-        const safeImages = profileImages.filter(isRenderableImageUrl);
-        const safeAvatar =
-            (isRenderableImageUrl(avatarUrl) && avatarUrl) ||
-            safeImages[0] ||
-            (isRenderableImageUrl(dataUser?.avatar) ? dataUser.avatar : '') ||
-            '';
+        if (!formData.gender) {
+            message.error('Vui lòng chọn giới tính ghép trọ trong phần thông tin cá nhân');
+            return;
+        }
 
+        const safeImages = profileImages.filter(isRenderableImageUrl);
         try {
-            await requestSaveRoommateProfile({
+            const saveResponse = await requestSaveRoommateProfile({
                 ...formData,
-                avatar: safeAvatar,
-                images: safeImages.length
-                    ? safeImages
-                    : dataUser?.roommateProfile?.images?.filter(isRenderableImageUrl) || [],
+                images: safeImages,
                 budget: Number(formData.budget),
                 age: Number(formData.age),
                 distanceRadius: Number(formData.distanceRadius),
             });
+            if (saveResponse?.metadata?.gender !== formData.gender) {
+                message.error('Máy chủ chưa lưu đúng giới tính đã chọn. Vui lòng thử lưu lại.');
+                return;
+            }
+            try {
+                await fetchAuth();
+            } catch {
+                message.error('Hồ sơ đã được lưu nhưng không thể làm mới thông tin tài khoản. Vui lòng tải lại trang.');
+                return;
+            }
             message.success(isEditMode ? 'Đã cập nhật hồ sơ ghép trọ thành công' : 'Đã lưu hồ sơ ghép trọ thành công');
-            navigate(isEditMode ? '/roommate/chats' : '/roommate/discover');
+            navigate('/roommate/discover');
         } catch (error) {
             message.error(error?.response?.data?.message || 'Không thể lưu hồ sơ ghép trọ');
         }
@@ -217,22 +203,34 @@ function RoommateOnboarding() {
     ).filter(isRenderableImageUrl);
 
     return (
-        <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px 60px', fontFamily: 'Arial, sans-serif' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                <div style={{ fontSize: 24, fontWeight: 700 }}>Bumble</div>
-                <div style={{ display: 'flex', gap: 18, alignItems: 'center', fontSize: 26 }}>
-                    <span>←</span>
-                    <span>◌</span>
+        <div className={styles.page}>
+            <header className={styles.hero}>
+                <div className={styles.eyebrow}>HOMIEHUB <span>•</span> KẾT NỐI BẠN CÙNG NHÀ</div>
+                <h1>{isEditMode ? 'Hoàn thiện hồ sơ của bạn' : 'Tìm người bạn ở ghép phù hợp'}</h1>
+                <p>Chia sẻ một chút về nếp sống và mong muốn của bạn để tìm người có thể cùng xây dựng một không gian sống thoải mái.</p>
+                <div className={styles.steps} aria-label="Các bước tạo hồ sơ">
+                    <span className={styles.stepActive}><b>1</b> Hồ sơ</span>
+                    <span className={styles.stepLine} />
+                    <span><b>2</b> Khám phá</span>
+                    <span className={styles.stepLine} />
+                    <span><b>3</b> Kết nối</span>
                 </div>
-            </div>
+            </header>
 
-            <div style={{ display: 'grid', gap: 18 }}>
-                <div style={{ background: '#f3f3f3', borderRadius: 18, padding: '22px 18px' }}>
-                    <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Ảnh hồ sơ</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className={styles.form}>
+                <div className={styles.section}>
+                    <div className={styles.sectionHeading}>
+                        <span className={styles.sectionIcon}>📸</span>
+                        <div><h2>Ảnh hồ sơ</h2><p>Ảnh rõ nét giúp bạn tạo thiện cảm ngay từ lần đầu.</p></div>
+                        <span className={styles.counter}>{profileImages.length}/6</span>
+                    </div>
+                    <div className={styles.helperText} style={{ color: '#777', fontSize: 13, marginBottom: 12 }}>
+                        Thêm URL ảnh công khai trên internet để ảnh vẫn hiển thị sau khi deploy.
+                    </div>
+                    <div className={styles.photoList} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                         {previewList.length ? (
                             previewList.map((image, index) => (
-                                <div key={`${image}-${index}`} style={{ position: 'relative' }}>
+                                <div className={styles.photoPreview} key={`${image}-${index}`} style={{ position: 'relative' }}>
                                     <img
                                         src={image}
                                         alt="profile"
@@ -264,41 +262,56 @@ function RoommateOnboarding() {
                                             fontSize: 12,
                                         }}
                                     >
-                                        ×
+                                        <DeleteOutlined />
                                     </button>
                                 </div>
                             ))
                         ) : (
-                            <div style={{ color: '#888', fontSize: 14 }}>Chưa có ảnh. Hãy tải ảnh lên.</div>
+                            <div style={{ color: '#888', fontSize: 14 }}>Chưa có ảnh. Dán URL ảnh để thêm vào hồ sơ.</div>
                         )}
                     </div>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        hidden
-                        onChange={handleSelectImages}
-                    />
-                    <Button icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()}>
-                        Tải tối đa 6 ảnh
-                    </Button>
+                    <div className={styles.urlRow} style={{ display: 'flex', gap: 8 }}>
+                        <Input
+                            value={imageUrlInput}
+                            onChange={(event) => setImageUrlInput(event.target.value)}
+                            onPressEnter={(event) => {
+                                event.preventDefault();
+                                handleAddImageUrl();
+                            }}
+                            placeholder="https://example.com/images/avatar.jpg"
+                            disabled={profileImages.length >= 6}
+                        />
+                        <Button icon={<PlusOutlined />} onClick={handleAddImageUrl} disabled={profileImages.length >= 6}>
+                            Thêm ảnh
+                        </Button>
+                    </div>
+                    <div className={styles.helperText} style={{ color: '#888', fontSize: 12, marginTop: 6 }}>
+                        Dùng URL http/https có thể truy cập công khai; tối đa 6 ảnh. Không dùng đường dẫn file hoặc localhost.
+                    </div>
                 </div>
 
-                <div style={{ background: '#f3f3f3', borderRadius: 18, padding: '22px 18px' }}>
-                    <div style={{ fontWeight: 700, fontSize: 24, marginBottom: 10 }}>My bio</div>
+                <div className={styles.section}>
+                    <div className={styles.sectionHeading}>
+                        <span className={styles.sectionIcon}>✍️</span>
+                        <div><h2>Giới thiệu về bạn</h2><p>Điều gì khiến bạn trở thành một người bạn cùng nhà tuyệt vời?</p></div>
+                    </div>
                     <Input.TextArea
                         value={formData.bio}
                         onChange={(e) => updateField('bio', e.target.value)}
                         rows={3}
-                        placeholder="Ví dụ: Mình là người sạch sẽ, thích sống yên tĩnh, làm việc từ xa..."
+                        maxLength={300}
+                        showCount
+                        placeholder="Ví dụ: Mình gọn gàng, thích không gian yên tĩnh, thường nấu ăn tại nhà..."
                         style={{ borderRadius: 14, border: '1px solid #e5e5e5', fontSize: 18 }}
                     />
                 </div>
 
-                <div style={{ background: '#f3f3f3', borderRadius: 18, padding: '22px 18px' }}>
-                    <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Thông tin cá nhân</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
+                <div className={styles.section}>
+                    <div className={styles.sectionHeading}>
+                        <span className={styles.sectionIcon}>🧭</span>
+                        <div><h2>Thông tin cơ bản</h2><p>Chọn đúng giới tính để chỉ nhận gợi ý cùng giới tính.</p></div>
+                    </div>
+                    <div className={styles.fieldGrid}>
                         <div>
                             <div style={{ marginBottom: 8, fontWeight: 600 }}>Khu vực</div>
                             <Input value={formData.location} onChange={(e) => updateField('location', e.target.value)} />
@@ -314,13 +327,17 @@ function RoommateOnboarding() {
                             />
                         </div>
                         <div>
-                            <div style={{ marginBottom: 8, fontWeight: 600 }}>Giới tính</div>
+                            <div style={{ marginBottom: 4, fontWeight: 600 }}>Giới tính ghép trọ</div>
                             <Select
-                                value={formData.gender}
+                                value={formData.gender || undefined}
                                 onChange={(value) => updateField('gender', value)}
+                                placeholder="Chọn giới tính"
                                 style={{ width: '100%' }}
                                 options={genderOptions.map((item) => ({ label: item, value: item }))}
                             />
+                            <div style={{ color: '#777', fontSize: 12, marginTop: 4 }}>
+                                Ghép cùng giới tính được chọn ở đây; nội dung bio không quyết định giới tính.
+                            </div>
                         </div>
                         <div>
                             <div style={{ marginBottom: 8, fontWeight: 600 }}>Trạng thái</div>
@@ -343,23 +360,17 @@ function RoommateOnboarding() {
                                 style={{ width: '100%' }}
                             />
                         </div>
-                        <div>
-                            <div style={{ marginBottom: 8, fontWeight: 600 }}>Giới tính ưu tiên</div>
-                            <Select
-                                value={formData.preferredGender}
-                                onChange={(value) => updateField('preferredGender', value)}
-                                style={{ width: '100%' }}
-                                options={preferredGenderOptions.map((item) => ({ label: item, value: item }))}
-                            />
-                        </div>
                     </div>
                 </div>
 
-                <div style={{ background: '#f3f3f3', borderRadius: 18, padding: '22px 18px' }}>
-                    <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Lifestyle và sở thích</div>
+                <div className={styles.section}>
+                    <div className={styles.sectionHeading}>
+                        <span className={styles.sectionIcon}>✨</span>
+                        <div><h2>Nếp sống & sở thích</h2><p>Tìm người có thói quen và năng lượng phù hợp với bạn.</p></div>
+                    </div>
                     <div style={{ display: 'grid', gap: 12 }}>
                         <div>
-                            <div style={{ marginBottom: 8, fontWeight: 600 }}>Lifestyle</div>
+                            <div className={styles.fieldLabel}>Nếp sống</div>
                             <Checkbox.Group
                                 options={lifestyleOptions}
                                 value={formData.lifestyle}
@@ -367,7 +378,7 @@ function RoommateOnboarding() {
                             />
                         </div>
                         <div>
-                            <div style={{ marginBottom: 8, fontWeight: 600 }}>Sở thích</div>
+                            <div className={styles.fieldLabel}>Sở thích</div>
                             <Checkbox.Group
                                 options={interestOptions}
                                 value={formData.interests}
@@ -375,7 +386,7 @@ function RoommateOnboarding() {
                             />
                         </div>
                         <div>
-                            <div style={{ marginBottom: 8, fontWeight: 600 }}>Khoảng cách tối đa</div>
+                            <div className={styles.fieldLabel}>Khoảng cách tìm kiếm tối đa</div>
                             <InputNumber
                                 min={5}
                                 max={50}
@@ -386,7 +397,7 @@ function RoommateOnboarding() {
                             <span style={{ marginLeft: 8 }}>km</span>
                         </div>
                         <div>
-                            <div style={{ marginBottom: 8, fontWeight: 600 }}>User preferences</div>
+                            <div className={styles.fieldLabel}>Mong muốn về bạn cùng nhà</div>
                             <Checkbox.Group
                                 options={preferenceOptions}
                                 value={formData.preferences}
@@ -396,13 +407,15 @@ function RoommateOnboarding() {
                     </div>
                 </div>
 
-                <div style={{ background: '#f3f3f3', borderRadius: 18, padding: '22px 18px' }}>
+                <div className={`${styles.section} ${styles.availability}`}>
+                    <div>
+                        <strong>Hiển thị hồ sơ trong danh sách tìm bạn</strong>
+                        <p>Tắt tùy chọn này nếu bạn chưa muốn nhận lượt thích mới.</p>
+                    </div>
                     <Checkbox
                         checked={formData.isLookingForRoommate}
                         onChange={(e) => updateField('isLookingForRoommate', e.target.checked)}
-                    >
-                        Tôi đang tìm bạn ở ghép
-                    </Checkbox>
+                    />
                 </div>
             </div>
 
@@ -414,14 +427,14 @@ function RoommateOnboarding() {
                 style={{
                     height: 56,
                     borderRadius: 999,
-                    background: '#111',
+                    background: '#16a765',
                     border: 'none',
                     fontSize: 18,
                     fontWeight: 700,
                     marginTop: 24,
                 }}
             >
-                Tiếp tục
+                {isEditMode ? 'Lưu thay đổi' : 'Tiếp tục'}
             </Button>
         </div>
     );

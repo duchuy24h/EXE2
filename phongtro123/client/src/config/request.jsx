@@ -22,16 +22,6 @@ export const requestForgotPassword = async (data) => {
     return res.data;
 };
 
-export const requestSendRoommateOtp = async (data = {}) => {
-    const res = await request.post('/api/roommate/send-otp', data);
-    return res.data;
-};
-
-export const requestVerifyRoommateOtp = async (data) => {
-    const res = await request.post('/api/roommate/verify-otp', data);
-    return res.data;
-};
-
 export const requestGetRoommateSuggestions = async (params = {}) => {
     const res = await request.get('/api/roommate/suggestions', { params });
     return res.data;
@@ -189,6 +179,31 @@ export const requestPurchasePassRoom = async (data) => {
     return res.data;
 };
 
+export const requestGetMarketplaceAffiliateProducts = async () => {
+    const res = await request.get('/api/affiliate-products');
+    return res.data;
+};
+
+export const requestGetMyMarketplaceAffiliateProducts = async () => {
+    const res = await request.get('/api/my-affiliate-products');
+    return res.data;
+};
+
+export const requestCreateMarketplaceAffiliateProduct = async (data) => {
+    const res = await request.post('/api/affiliate-products', data);
+    return res.data;
+};
+
+export const requestUpdateMarketplaceAffiliateProduct = async (productId, data) => {
+    const res = await request.put(`/api/affiliate-products/${productId}`, data);
+    return res.data;
+};
+
+export const requestDeleteMarketplaceAffiliateProduct = async (productId) => {
+    const res = await request.delete(`/api/affiliate-products/${productId}`);
+    return res.data;
+};
+
 export const requestGetNewPost = async () => {
     const res = await request.get('/api/get-new-post');
     return res.data;
@@ -239,7 +254,7 @@ export const requestGetFavourite = async () => {
 export const requestGetPosts = async (params) => {
     // Filter out parameters with empty string values
     const filteredParams = Object.entries(params)
-        .filter(([key, value]) => value !== '')
+        .filter(([, value]) => value !== '')
         .reduce((acc, [key, value]) => {
             acc[key] = value;
             return acc;

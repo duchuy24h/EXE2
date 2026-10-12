@@ -8,8 +8,17 @@ const passRoomSchema = new mongoose.Schema(
         },
         category: {
             type: String,
-            required: true,
+            required: function () {
+                return this.kind !== 'pass-item';
+            },
             enum: ['phong-tro', 'nha-nguyen-can', 'can-ho-chung-cu', 'can-ho-mini'],
+        },
+        itemCategory: {
+            type: String,
+            enum: ['noi-that', 'dien-tu', 'do-gia-dung', 'do-trang-tri', 'khac'],
+            required: function () {
+                return this.kind === 'pass-item';
+            },
         },
         location: {
             type: String,
@@ -21,7 +30,9 @@ const passRoomSchema = new mongoose.Schema(
         },
         area: {
             type: Number,
-            required: true,
+            required: function () {
+                return this.kind !== 'pass-item';
+            },
         },
         description: {
             type: String,
@@ -46,7 +57,7 @@ const passRoomSchema = new mongoose.Schema(
         kind: {
             type: String,
             required: true,
-            enum: ['pass-room', 'affiliate-decor'],
+            enum: ['pass-room', 'affiliate-decor', 'pass-item'],
         },
         decorStyle: {
             type: String,

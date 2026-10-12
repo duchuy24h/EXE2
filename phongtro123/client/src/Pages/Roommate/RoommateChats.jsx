@@ -1,14 +1,31 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { message } from 'antd';
+import {
+    CloseOutlined,
+    EnvironmentOutlined,
+    HeartFilled,
+    HomeOutlined,
+    MessageOutlined,
+    SearchOutlined,
+    UserOutlined,
+} from '@ant-design/icons';
 import { requestGetMessages, requestGetRoommateMatches } from '../../config/request';
 import { useStore } from '../../hooks/useStore';
+import styles from './RoommateChats.module.scss';
 
 function RoommateChats() {
     const [matches, setMatches] = useState([]);
     const [selectedMatch, setSelectedMatch] = useState(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [searchValue, setSearchValue] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
     const { globalUsersMessage, setGlobalUsersMessage } = useStore();
+    const filteredMatches = matches.filter((item) =>
+        `${item.name} ${item.location || ''} ${item.bio || ''}`
+            .toLocaleLowerCase('vi')
+            .includes(searchValue.trim().toLocaleLowerCase('vi')),
+    );
 
     const openChatWithMatch = async (matchUser) => {
         if (!matchUser?.id) return;
@@ -53,8 +70,11 @@ function RoommateChats() {
                             age: user.age,
                             location: user.location,
                             gender: user.gender,
+                            studentStatus: user.studentStatus,
+                            budget: user.budget,
                             interests: user.interests || [],
                             lifestyle: user.lifestyle || [],
+                            preferences: user.preferences || [],
                             description: 'Bạn đã match. Bắt đầu chat ngay thôi!',
                             icon: '◫',
                             accent: '#f4d445',
@@ -64,8 +84,11 @@ function RoommateChats() {
                     setMatches([]);
                 }
             } catch (error) {
-                console.log('Match fallback active');
+                console.error('Không thể tải danh sách match:', error);
+                message.error(error?.response?.data?.message || 'Không thể tải danh sách match');
                 setMatches([]);
+            } finally {
+                setIsLoading(false);
             }
         };
 
@@ -83,54 +106,50 @@ function RoommateChats() {
     };
 
     return (
-        <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 16px 80px', fontFamily: 'Arial, sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                <h2 style={{ fontSize: 52, fontWeight: 800, margin: 0, letterSpacing: '-0.04em' }}>Chats</h2>
-                <Link to="/roommate/onboarding?edit=1" style={{ fontSize: 18, color: '#111', textDecoration: 'none' }}>
-                    Sửa hồ sơ
-                </Link>
-            </div>
-
-            <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 26, fontWeight: 700, marginBottom: 12 }}>Your matches</div>
-                <div
-                    style={{
-                        background: '#f3f3f3',
-                        borderRadius: 26,
-                        padding: '20px 18px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 12,
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div
-                            style={{
-                                width: 52,
-                                height: 52,
-                                borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #ddd, #bbb)',
-                            }}
-                        />
-                        <div>
-                            <div style={{ fontSize: 20, fontWeight: 700 }}>Match thực tế</div>
-                            <div style={{ fontSize: 16, color: '#555' }}>Mở chat ngay khi trận match đã xác nhận.</div>
-                        </div>
+        <main className={styles.page}>
+            <div className={styles.container}>
+            <header className={styles.hero}>
+                <div className={styles.eyebrow}>HOMIEHUB <span>•</span> KẾT NỐI CỦA BẠN</div>
+                <div className={styles.heroRow}>
+                    <div>
+                        <h1>Tin nhắn & kết nối</h1>
+                        <p>Nơi những lượt thích đôi bên trở thành cuộc trò chuyện đầu tiên về mái nhà chung.</p>
                     </div>
-                    <div style={{ fontSize: 36 }}>›</div>
+                    <Link className={styles.editLink} to="/roommate/onboarding?edit=1">Sửa hồ sơ</Link>
                 </div>
+            </header>
+
+            <div className={styles.summary}>
+                <span className={styles.summaryIcon}><HeartFilled /></span>
+                <div className={styles.summaryCopy}><span className={styles.summaryLabel}>KẾT NỐI CỦA BẠN</span><strong>{matches.length} {matches.length === 1 ? 'match' : 'matches'}</strong><p>Khi cả hai cùng thích nhau, bạn có thể bắt đầu trò chuyện.</p></div>
+                <span className={styles.summaryDecoration}>♡</span>
             </div>
 
-            <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 30, fontWeight: 700, marginBottom: 18 }}>Chats (Recent)</div>
+            <section className={styles.listSection}>
+                <div className={styles.listHeading}>
+                    <div><h2>Danh sách match</h2><p>Những người bạn đã kết nối thành công</p></div>
+                    {matches.length > 0 && (
+                        <label className={styles.searchBox}>
+                            <SearchOutlined />
+                            <input value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Tìm trong danh sách" />
+                        </label>
+                    )}
+                </div>
 
-                {matches.length === 0 ? (
-                    <div style={{ padding: '18px 12px', color: '#666', fontSize: 17 }}>Bạn chưa có match nào. Hãy swipe để bắt đầu.</div>
+                {isLoading ? (
+                    <div className={styles.emptyState}><span className={styles.spinner} /><strong>Đang tải kết nối...</strong></div>
+                ) : filteredMatches.length === 0 ? (
+                    <div className={styles.emptyState}>
+                        <span className={styles.emptyIcon}>{searchValue ? <SearchOutlined /> : <HeartFilled />}</span>
+                        <h3>{searchValue ? 'Không tìm thấy kết quả' : 'Chưa có match nào'}</h3>
+                        <p>{searchValue ? 'Thử tên hoặc khu vực khác nhé.' : 'Hãy tiếp tục khám phá hồ sơ cùng giới tính. Khi cả hai cùng thích nhau, match sẽ xuất hiện ở đây.'}</p>
+                        {!searchValue && <Link className={styles.discoverLink} to="/roommate/discover">Khám phá hồ sơ</Link>}
+                    </div>
                 ) : (
-                    matches.map((item) => (
+                    filteredMatches.map((item) => (
                         <div
                             key={item.id}
+                            className={styles.matchCard}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -147,6 +166,7 @@ function RoommateChats() {
                             <button
                                 type="button"
                                 onClick={() => openProfilePreview(item)}
+                                className={styles.matchPhoto}
                                 style={{
                                     width: 110,
                                     height: 140,
@@ -173,12 +193,29 @@ function RoommateChats() {
                                 />
                             </button>
 
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 23, fontWeight: 700, marginBottom: 6 }}>{item.name}</div>
-                                <div style={{ fontSize: 17, color: '#555', lineHeight: 1.4 }}>{item.description}</div>
+                            <div className={styles.matchInfo} style={{ flex: 1 }}>
+                                <div className={styles.matchTitle}>
+                                    <div>
+                                        <h3>{item.name}</h3>
+                                        <span>{item.age ? `${item.age} tuổi` : ''}{item.gender ? ` · ${item.gender}` : ''}{item.location ? ` · ${item.location}` : ''}</span>
+                                    </div>
+                                    <span className={styles.connectedBadge}><HeartFilled /> Đã kết nối</span>
+                                </div>
+                                <div className={styles.details}>
+                                    {item.studentStatus && <span>{item.studentStatus}</span>}
+                                    {Number(item.budget) > 0 && <span>{Number(item.budget).toLocaleString('vi-VN')} đ/tháng</span>}
+                                </div>
+                                <p className={styles.bio}>{item.bio || item.description}</p>
+                                {!!(item.lifestyle?.length || item.interests?.length) && (
+                                    <div className={styles.tags}>
+                                        {[...(item.lifestyle || []), ...(item.interests || [])].slice(0, 5).map((tag) => <span key={tag}>{tag}</span>)}
+                                    </div>
+                                )}
+                                <div className={styles.cardActions}>
                                 <button
                                     type="button"
                                     onClick={() => openProfilePreview(item)}
+                                    className={styles.profileButton}
                                     style={{
                                         marginTop: 12,
                                         border: 'none',
@@ -191,34 +228,27 @@ function RoommateChats() {
                                         cursor: 'pointer',
                                     }}
                                 >
-                                    Xem profile đầy đủ
+                                    <UserOutlined /> Xem hồ sơ
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => openChatWithMatch(item)}
+                                    className={styles.chatButton}
+                                >
+                                    <MessageOutlined /> Nhắn tin
+                                </button>
+                                </div>
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={() => openChatWithMatch(item)}
-                                style={{
-                                    border: 'none',
-                                    background: '#f4d445',
-                                    color: '#111',
-                                    borderRadius: 999,
-                                    padding: '10px 14px',
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Chat
-                            </button>
                         </div>
                     ))
                 )}
-            </div>
+            </section>
 
             {selectedMatch && (
                 <div
                     onClick={() => setSelectedMatch(null)}
+                    className={styles.modalOverlay}
                     style={{
                         position: 'fixed',
                         inset: 0,
@@ -231,20 +261,33 @@ function RoommateChats() {
                 >
                     <div
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: 'min(560px, 100%)',
-                            background: '#fff',
-                            borderRadius: 26,
-                            overflow: 'hidden',
-                            boxShadow: '0 16px 36px rgba(0,0,0,0.2)',
-                        }}
+                        className={styles.profileModal}
                     >
-                        <div style={{ position: 'relative', width: '100%', height: 420, background: '#f3f3f3' }}>
+                        <div className={styles.modalPhoto}>
                             <img
                                 src={selectedMatch.images?.[selectedImageIndex] || selectedMatch.avatar}
                                 alt={selectedMatch.name}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                onError={(event) => {
+                                    event.currentTarget.src =
+                                        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80';
+                                }}
                             />
+                            <div className={styles.photoTopline}>
+                                <span><HeartFilled /> Đã kết nối</span>
+                                <button type="button" onClick={() => setSelectedMatch(null)} aria-label="Đóng hồ sơ">
+                                    <CloseOutlined />
+                                </button>
+                            </div>
+                            {selectedMatch.images?.length > 1 && (
+                                <div className={styles.photoCounter}>
+                                    {selectedImageIndex + 1} / {selectedMatch.images.length}
+                                </div>
+                            )}
+                            <div className={styles.photoCaption}>
+                                <span className={styles.captionGender}>{selectedMatch.gender || 'Bạn cùng nhà'}</span>
+                                <h2>{selectedMatch.name}</h2>
+                                <p><EnvironmentOutlined /> {selectedMatch.location || 'Chưa cập nhật khu vực'}</p>
+                            </div>
                             {selectedMatch.images?.length > 1 && (
                                 <>
                                     <button
@@ -287,100 +330,87 @@ function RoommateChats() {
                                     </button>
                                 </>
                             )}
-                        </div>
-
-                        <div style={{ padding: 18 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                                <div style={{ fontSize: 30, fontWeight: 800 }}>{selectedMatch.name}</div>
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedMatch(null)}
-                                    style={{
-                                        border: 'none',
-                                        background: '#f3f3f3',
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: '50%',
-                                        cursor: 'pointer',
-                                        fontSize: 18,
-                                    }}
-                                >
-                                    ×
-                                </button>
-                            </div>
-
-                            <div style={{ fontSize: 18, color: '#555', marginBottom: 10 }}>
-                                {selectedMatch.age || 24} · {selectedMatch.gender || 'Khác'} · {selectedMatch.location || 'Hà Nội'}
-                            </div>
-
-                            <div style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 12, color: '#333' }}>
-                                {selectedMatch.bio || 'Tôi đang tìm bạn ở ghép phù hợp với lối sống thoải mái.'}
-                            </div>
-
-                            {(selectedMatch.interests || selectedMatch.lifestyle || []).length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                                    {[...(selectedMatch.interests || []), ...(selectedMatch.lifestyle || [])].slice(0, 8).map((tag) => (
-                                        <span
-                                            key={tag}
-                                            style={{
-                                                background: '#f3f3f3',
-                                                color: '#111',
-                                                borderRadius: 999,
-                                                padding: '8px 12px',
-                                                fontSize: 13,
-                                                fontWeight: 600,
-                                            }}
-                                        >
-                                            {tag}
-                                        </span>
+                            {selectedMatch.images?.length > 1 && (
+                                <div className={styles.photoIndicators}>
+                                    {selectedMatch.images.map((image, index) => (
+                                        <button
+                                            key={`${image}-${index}`}
+                                            type="button"
+                                            className={index === selectedImageIndex ? styles.activeIndicator : ''}
+                                            onClick={() => setSelectedImageIndex(index)}
+                                            aria-label={`Xem ảnh ${index + 1}`}
+                                        />
                                     ))}
                                 </div>
                             )}
+                        </div>
 
-                            <div style={{ display: 'flex', gap: 12 }}>
+                        <div className={styles.profileDetails}>
+                            <div className={styles.profileMeta}>
+                                <span><UserOutlined /> {selectedMatch.age || 24} tuổi</span>
+                                <span><HomeOutlined /> {selectedMatch.studentStatus || 'Đang tìm bạn ở ghép'}</span>
+                                {Number(selectedMatch.budget) > 0 && (
+                                    <span>{Number(selectedMatch.budget).toLocaleString('vi-VN')} đ/tháng</span>
+                                )}
+                            </div>
+
+                            <section className={styles.bioSection}>
+                                <h3>Đôi nét về mình</h3>
+                                <p>{selectedMatch.bio || 'Đang tìm một người bạn cùng nhà phù hợp để chia sẻ không gian sống thoải mái.'}</p>
+                            </section>
+
+                            {!!selectedMatch.lifestyle?.length && (
+                                <section className={styles.tagSection}>
+                                    <h3>Nếp sống</h3>
+                                    <div className={styles.profileTags}>
+                                        {selectedMatch.lifestyle.map((tag) => <span key={`life-${tag}`}>{tag}</span>)}
+                                    </div>
+                                </section>
+                            )}
+
+                            {!!selectedMatch.interests?.length && (
+                                <section className={styles.tagSection}>
+                                    <h3>Sở thích</h3>
+                                    <div className={styles.profileTags}>
+                                        {selectedMatch.interests.map((tag) => <span key={`interest-${tag}`}>{tag}</span>)}
+                                    </div>
+                                </section>
+                            )}
+
+                            {!!selectedMatch.preferences?.length && (
+                                <section className={styles.tagSection}>
+                                    <h3>Mong muốn về bạn cùng nhà</h3>
+                                    <div className={styles.profileTags}>
+                                        {selectedMatch.preferences.map((tag) => <span key={`preference-${tag}`}>{tag}</span>)}
+                                    </div>
+                                </section>
+                            )}
+
+                            <div className={styles.modalActions}>
                                 <button
                                     type="button"
+                                    className={styles.modalChatButton}
                                     onClick={() => {
                                         setSelectedMatch(null);
                                         openChatWithMatch(selectedMatch);
                                     }}
-                                    style={{
-                                        flex: 1,
-                                        border: 'none',
-                                        background: '#111',
-                                        color: '#fff',
-                                        borderRadius: 999,
-                                        padding: '12px 18px',
-                                        fontSize: 16,
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                    }}
                                 >
-                                    Chat ngay
+                                    <MessageOutlined /> Bắt đầu trò chuyện
                                 </button>
                                 <button
                                     type="button"
+                                    className={styles.modalCloseButton}
                                     onClick={() => setSelectedMatch(null)}
-                                    style={{
-                                        flex: 1,
-                                        border: '1px solid #ddd',
-                                        background: '#fff',
-                                        color: '#111',
-                                        borderRadius: 999,
-                                        padding: '12px 18px',
-                                        fontSize: 16,
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                    }}
                                 >
-                                    Đóng
+                                    Đóng hồ sơ
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+            </div>
+        </main>
     );
 }
 

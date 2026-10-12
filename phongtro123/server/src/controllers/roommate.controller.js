@@ -3,6 +3,7 @@ const modelSwipe = require('../models/roommateSwipe.model');
 const modelMatch = require('../models/roommateMatch.model');
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
+const { normalizeRoommateGender, getRoommateGenderRegex } = require('../utils/roommateGender');
 
 const FALLBACK_AVATAR =
     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80';
@@ -97,13 +98,12 @@ const normalizeArray = (value) => {
     return Array.isArray(value) ? value : [value];
 };
 
-const buildSuggestionQuery = (currentUserId, queryFilter = {}) => {
+const buildSuggestionQuery = (currentUserId, currentGender, queryFilter = {}) => {
     const blockedIds = [];
     const likedIds = [];
     const excludedIds = [...blockedIds, ...likedIds, currentUserId];
     const filters = {
         _id: { $nin: excludedIds },
-        emailVerified: true,
         roommateModeEnabled: true,
         isActive: { $ne: false },
         roommateProfile: {
@@ -112,7 +112,7 @@ const buildSuggestionQuery = (currentUserId, queryFilter = {}) => {
         },
         'roommateProfile.isLookingForRoommate': true,
         'roommateProfile.location': { $exists: true, $ne: '' },
-        'roommateProfile.gender': { $exists: true, $ne: null },
+        'roommateProfile.gender': getRoommateGenderRegex(currentGender),
     };
 
     if (queryFilter.location) {
@@ -123,10 +123,6 @@ const buildSuggestionQuery = (currentUserId, queryFilter = {}) => {
                 { 'roommateProfile.location': { $regex: locationValue, $options: 'i' } },
             ];
         }
-    }
-
-    if (queryFilter.gender && queryFilter.gender !== 'Tất cả') {
-        filters['roommateProfile.gender'] = queryFilter.gender;
     }
 
     if (queryFilter.budget) {
@@ -161,17 +157,25 @@ const buildSuggestionQuery = (currentUserId, queryFilter = {}) => {
 
 class RoommateController {
     async getSuggestions(req, res) {
+        res.set('Cache-Control', 'no-store');
         const currentUserId = req.user.id;
 
         const currentUser = await modelUser.findById(currentUserId);
         if (!currentUser) {
             throw new BadRequestError('Người dùng không tồn tại');
         }
+        if (!currentUser.roommateProfile?.location || !currentUser.roommateModeEnabled) {
+            throw new BadRequestError('Hãy tạo hồ sơ ghép trọ trước khi tìm bạn');
+        }
+
+        const currentGender = normalizeRoommateGender(currentUser.roommateProfile?.gender);
+        if (!currentGender) {
+            throw new BadRequestError('Vui lòng cập nhật giới tính trong hồ sơ ghép trọ');
+        }
 
         const queryFilter = {
             location: req.query.location,
             budget: req.query.budget,
-            gender: req.query.gender,
             lifestyle: req.query.lifestyle,
             interests: req.query.interests,
             preferences: req.query.preferences,
@@ -179,51 +183,52 @@ class RoommateController {
         };
 
         const users = await modelUser
-            .find(buildSuggestionQuery(currentUserId, queryFilter))
+            .find(buildSuggestionQuery(currentUserId, currentGender, queryFilter))
             .limit(10)
             .lean();
 
-        const payload = users.map((user) => {
-            const profile = user.roommateProfile || {};
-            const rawImages =
-                Array.isArray(profile.images) && profile.images.length
-                    ? profile.images
-                    : [user.avatar].filter(Boolean);
-            const profileImages = normalizeMediaList(rawImages, user.avatar || FALLBACK_AVATAR);
-            const budgetValue = Number(profile.budget || 0);
-            const budgetText =
-                budgetValue > 0 ? `${budgetValue.toLocaleString('vi-VN')} triệu` : '3-5 triệu';
+        const payload = users
+            .filter((user) => normalizeRoommateGender(user.roommateProfile?.gender) === currentGender)
+            .map((user) => {
+                const profile = user.roommateProfile || {};
+                const rawImages =
+                    Array.isArray(profile.images) && profile.images.length
+                        ? profile.images
+                        : [user.avatar].filter(Boolean);
+                const profileImages = normalizeMediaList(rawImages, user.avatar || FALLBACK_AVATAR);
+                const budgetValue = Number(profile.budget || 0);
+                const budgetText =
+                    budgetValue > 0 ? `${budgetValue.toLocaleString('vi-VN')} triệu` : '3-5 triệu';
 
-            return {
-                _id: user._id,
-                fullName: user.fullName,
-                email: user.email,
-                avatar: profileImages[0],
-                images: profileImages,
-                address: profile.location || user.address || 'Hà Nội',
-                bio:
-                    profile.bio ||
-                    'Sống sạch sẽ, tìm bạn ở ghép phù hợp với phong cách yên tĩnh.',
-                age: profile.age || 24,
-                gender: profile.gender || 'Khác',
-                studentStatus: profile.studentStatus || 'Sinh viên',
-                interests:
-                    Array.isArray(profile.interests) && profile.interests.length
-                        ? profile.interests
-                        : ['Yoga', 'Travel', 'Reading'],
-                lifestyle:
-                    Array.isArray(profile.lifestyle) && profile.lifestyle.length
-                        ? profile.lifestyle
-                        : ['Sạch sẽ', 'Làm việc từ xa'],
-                budget: budgetText,
-                distance: `${profile.distanceRadius || 20} km away`,
-                preferredGender: profile.preferredGender || 'Tất cả',
-                preferences:
-                    Array.isArray(profile.preferences) && profile.preferences.length
-                        ? profile.preferences
-                        : ['Không hút thuốc', 'Làm việc từ xa'],
-            };
-        });
+                return {
+                    _id: user._id,
+                    fullName: user.fullName,
+                    email: user.email,
+                    avatar: profileImages[0],
+                    images: profileImages,
+                    address: profile.location || user.address || 'Hà Nội',
+                    bio:
+                        profile.bio ||
+                        'Sống sạch sẽ, tìm bạn ở ghép phù hợp với phong cách yên tĩnh.',
+                    age: profile.age || 24,
+                    gender: normalizeRoommateGender(profile.gender) || 'Khác',
+                    studentStatus: profile.studentStatus || 'Sinh viên',
+                    interests:
+                        Array.isArray(profile.interests) && profile.interests.length
+                            ? profile.interests
+                            : ['Yoga', 'Travel', 'Reading'],
+                    lifestyle:
+                        Array.isArray(profile.lifestyle) && profile.lifestyle.length
+                            ? profile.lifestyle
+                            : ['Sạch sẽ', 'Làm việc từ xa'],
+                    budget: budgetText,
+                    distance: `${profile.distanceRadius || 20} km away`,
+                    preferences:
+                        Array.isArray(profile.preferences) && profile.preferences.length
+                            ? profile.preferences
+                            : ['Không hút thuốc', 'Làm việc từ xa'],
+                };
+            });
 
         return new OK({
             message: 'Lấy danh sách gợi ý thành công',
@@ -241,6 +246,29 @@ class RoommateController {
 
         if (targetUserId.toString() === currentUserId.toString()) {
             throw new BadRequestError('Không thể swipe chính mình');
+        }
+
+        const [currentUser, targetUser] = await Promise.all([
+            modelUser.findById(currentUserId).select('roommateModeEnabled roommateProfile.gender'),
+            modelUser
+                .findById(targetUserId)
+                .select(
+                    'roommateModeEnabled roommateProfile.gender roommateProfile.isLookingForRoommate roommateProfile.location isActive',
+                ),
+        ]);
+        const currentGender = normalizeRoommateGender(currentUser?.roommateProfile?.gender);
+        if (!currentUser?.roommateModeEnabled || !currentGender) {
+            throw new BadRequestError('Hãy tạo hồ sơ ghép trọ trước khi tìm bạn');
+        }
+        if (
+            !targetUser ||
+            targetUser.isActive === false ||
+            !targetUser.roommateModeEnabled ||
+            !targetUser.roommateProfile?.isLookingForRoommate ||
+            !targetUser.roommateProfile?.location ||
+            normalizeRoommateGender(targetUser.roommateProfile?.gender) !== currentGender
+        ) {
+            throw new BadRequestError('Chỉ có thể kết nối với người cùng giới tính đang tìm bạn ở ghép');
         }
 
         await modelSwipe.findOneAndUpdate(
@@ -288,13 +316,22 @@ class RoommateController {
 
     async getLikedYou(req, res) {
         const currentUserId = req.user.id;
+        const currentUser = await modelUser.findById(currentUserId).select('roommateProfile.gender');
+        const currentGender = normalizeRoommateGender(currentUser?.roommateProfile?.gender);
+        if (!currentGender) {
+            throw new BadRequestError('Hãy tạo hồ sơ ghép trọ trước khi tìm bạn');
+        }
 
         const likes = await modelSwipe
             .find({ toUserId: currentUserId, direction: 'like' })
-            .populate('fromUserId', 'fullName avatar email address')
+            .populate({
+                path: 'fromUserId',
+                select: 'fullName avatar email address roommateProfile.gender',
+                match: { 'roommateProfile.gender': getRoommateGenderRegex(currentGender) },
+            })
             .lean();
 
-        const payload = likes.map((item) => {
+        const payload = likes.filter((item) => item.fromUserId).map((item) => {
             const from = item.fromUserId || {};
             const avatar =
                 normalizeMediaUrl(from.avatar) || FALLBACK_AVATAR;
@@ -315,6 +352,11 @@ class RoommateController {
 
     async getMatches(req, res) {
         const currentUserId = req.user.id;
+        const currentUser = await modelUser.findById(currentUserId).select('roommateProfile.gender');
+        const currentGender = normalizeRoommateGender(currentUser?.roommateProfile?.gender);
+        if (!currentGender) {
+            throw new BadRequestError('Hãy tạo hồ sơ ghép trọ trước khi tìm bạn');
+        }
 
         const matches = await modelMatch
             .find({
@@ -324,7 +366,13 @@ class RoommateController {
             .populate('userB', 'fullName avatar roommateProfile address')
             .lean();
 
-        const payload = matches.map((item) => {
+        const payload = matches
+            .filter((item) => {
+                const userA = item.userA?._id?.toString() === currentUserId.toString() ? item.userA : item.userB;
+                const userB = item.userA?._id?.toString() === currentUserId.toString() ? item.userB : item.userA;
+                return userA && userB && normalizeRoommateGender(userB.roommateProfile?.gender) === currentGender;
+            })
+            .map((item) => {
             const otherUser =
                 item.userA._id.toString() === currentUserId.toString()
                     ? item.userB
@@ -346,11 +394,14 @@ class RoommateController {
                     'Tôi đang tìm bạn ở ghép phù hợp với lối sống thoải mái.',
                 age: profile.age || 24,
                 location: profile.location || otherUser.address || 'Hà Nội',
-                gender: profile.gender || 'Khác',
+                gender: normalizeRoommateGender(profile.gender) || 'Khác',
+                studentStatus: profile.studentStatus || 'Sinh viên',
+                budget: Number(profile.budget || 0),
                 interests: Array.isArray(profile.interests) ? profile.interests : [],
                 lifestyle: Array.isArray(profile.lifestyle) ? profile.lifestyle : [],
+                preferences: Array.isArray(profile.preferences) ? profile.preferences : [],
             };
-        });
+            });
 
         return new OK({
             message: 'Lấy danh sách match thành công',

@@ -4,6 +4,7 @@ const paymentsRoutes = require('./payments.routes');
 const messengerRoutes = require('./messenger.routes');
 const favouriteRoutes = require('./favourite.routes');
 const passRoomRoutes = require('./passRoom.routes');
+const affiliateProductRoutes = require('./affiliateProducts.routes');
 const roommateController = require('../controllers/roommate.controller');
 const { authUser } = require('../auth/checkAuth');
 
@@ -102,6 +103,8 @@ function routes(app) {
     app.get('/api/get-pass-rooms', passRoomRoutes);
     app.get('/api/get-pass-room-by-id', passRoomRoutes);
     app.post('/api/purchase-pass-room', passRoomRoutes);
+
+    app.use(affiliateProductRoutes);
 
     //// admin post
     app.get('/api/get-all-posts', postRoutes);

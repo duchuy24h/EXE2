@@ -97,6 +97,7 @@ function parseOptionalNumber(value, fieldName) {
 function buildPassRoomFilter(query) {
     const {
         kind,
+        itemCategory,
         category,
         decorStyle,
         location,
@@ -115,6 +116,10 @@ function buildPassRoomFilter(query) {
 
     if (category !== undefined && category !== '') {
         filter.category = category;
+    }
+
+    if (itemCategory !== undefined && itemCategory !== '') {
+        filter.itemCategory = itemCategory;
     }
 
     if (decorStyle !== undefined && decorStyle !== '') {
@@ -224,23 +229,35 @@ class ControllerPassRoom {
             images,
             phone,
             kind,
+            itemCategory,
             decorStyle,
             shopLink,
         } = req.body;
 
         if (
-            !title ||
-            !category ||
-            !location ||
-            !price ||
-            !area ||
-            !description ||
-            !phone ||
-            !kind
+            typeof title !== 'string' ||
+            !title.trim() ||
+            typeof location !== 'string' ||
+            !location.trim() ||
+            typeof description !== 'string' ||
+            !description.trim() ||
+            typeof phone !== 'string' ||
+            !phone.trim() ||
+            !['pass-room', 'affiliate-decor', 'pass-item'].includes(kind) ||
+            !Number.isFinite(Number(price)) ||
+            Number(price) < 0
         ) {
             throw new BadRequestError(
                 'Vui lòng nhập đầy đủ thông tin pass đồ / decor'
             );
+        }
+
+        if (kind === 'pass-item') {
+            if (!['noi-that', 'dien-tu', 'do-gia-dung', 'do-trang-tri', 'khac'].includes(itemCategory)) {
+                throw new BadRequestError('Vui lòng chọn danh mục đồ cần pass');
+            }
+        } else if (!category || !Number.isFinite(Number(area)) || Number(area) <= 0 || Number(price) <= 0) {
+            throw new BadRequestError('Vui lòng nhập đầy đủ thông tin pass phòng / decor');
         }
 
         const normalizedShopLink =
@@ -252,19 +269,20 @@ class ControllerPassRoom {
             normalizeAndValidateImages(images);
 
         const data = await modelPassRoom.create({
-            title,
-            category,
-            location,
-            price,
-            area,
-            description,
+            title: title.trim(),
+            category: kind === 'pass-item' ? undefined : category,
+            itemCategory: kind === 'pass-item' ? itemCategory : undefined,
+            location: location.trim(),
+            price: Number(price),
+            area: kind === 'pass-item' ? undefined : Number(area),
+            description: description.trim(),
             images: validatedImages,
-            phone,
+            phone: phone.trim(),
             shopLink: normalizedShopLink,
             userId: id,
             kind,
             decorStyle: decorStyle || 'modern',
-            status: 'inactive',
+            status: kind === 'pass-item' ? 'active' : 'inactive',
         });
 
         return new Created({
@@ -368,6 +386,12 @@ class ControllerPassRoom {
         if (!passRoom) {
             throw new BadRequestError(
                 'Gói không tồn tại'
+            );
+        }
+
+        if (passRoom.kind === 'pass-item') {
+            throw new BadRequestError(
+                'Tin pass đồ không thanh toán trên hệ thống; vui lòng nhắn tin trực tiếp cho người đăng'
             );
         }
 
