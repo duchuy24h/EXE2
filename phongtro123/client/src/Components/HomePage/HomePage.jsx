@@ -53,7 +53,7 @@ function HomePage() {
     const [category, setCategory] = useState(() => getQueryParam('category') || '');
     const [priceRange, setPriceRange] = useState(() => getQueryParam('priceRange') || '');
     const [areaRange, setAreaRange] = useState(() => getQueryParam('areaRange') || '');
-    const [passRoomKind, setPassRoomKind] = useState(() => getQueryParam('passRoomKind') || '');
+    const [passRoomKind] = useState(() => getQueryParam('passRoomKind') || '');
     // Default typeNews to 'vip' if not in URL
     const [typeNews, setTypeNews] = useState(() => getQueryParam('typeNews'));
 
@@ -61,7 +61,7 @@ function HomePage() {
         setter(currentValue === value ? '' : value);
     };
 
-    const isRoommateReady = !!dataUser?._id && dataUser?.emailVerified && dataUser?.roommateProfile && dataUser.roommateProfile.location;
+    const isRoommateReady = !!dataUser?._id && !!dataUser?.roommateProfile?.location;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -299,6 +299,35 @@ function HomePage() {
             </div>
 
             <div className={cx('inner')}>
+                <section className={cx('welcome-banner')}>
+                    <div className={cx('welcome-copy')}>
+                        <span className={cx('welcome-kicker')}>HOMIEHUB · TÌM CHỖ Ở DỄ DÀNG</span>
+                        <h1>
+                            Chốn ở phù hợp,
+                            <br />
+                            <span>bắt đầu từ đây.</span>
+                        </h1>
+                        <p>
+                            Khám phá phòng trọ, căn hộ và kết nối với người bạn cùng nhà phù hợp — tất cả trong một nơi.
+                        </p>
+                        <div className={cx('welcome-actions')}>
+                            <a href="#danh-sach-phong" className={cx('welcome-primary')}>Khám phá phòng trọ</a>
+                            <Link
+                                to={isRoommateReady ? '/roommate/discover' : '/roommate/onboarding'}
+                                className={cx('welcome-secondary')}
+                            >
+                                Tìm bạn cùng nhà
+                            </Link>
+                        </div>
+                    </div>
+                    <div className={cx('welcome-highlight')}>
+                        <span className={cx('welcome-house')} aria-hidden="true">⌂</span>
+                        <span className={cx('welcome-statLabel')}>ĐANG CÓ</span>
+                        <strong>{dataPost.length}</strong>
+                        <span className={cx('welcome-statCaption')}>tin phòng trọ<br />đang chờ bạn khám phá</span>
+                        <span className={cx('welcome-orbit')} aria-hidden="true" />
+                    </div>
+                </section>
                 <div className={cx('header')}>
                     <h1 className={cx('title')}>Kênh thông tin Phòng trọ uy tín Việt Nam</h1>
                     <p className={cx('description')}>Đây là nơi bạn có thể tìm thấy thông tin và dịch vụ tốt.</p>
@@ -311,7 +340,7 @@ function HomePage() {
                         <button onClick={() => setTypeNews('normal')} id={cx(typeNews === 'normal' && 'active')}>
                             Mới đăng
                         </button>
-                        <Link to={isRoommateReady ? '/roommate/discover' : '/roommate/verify'} className={cx('roommate-cta')}>
+                        <Link to={isRoommateReady ? '/roommate/discover' : '/roommate/onboarding'} className={cx('roommate-cta')}>
                             Tìm người ghép trọ
                         </Link>
                     </div>
@@ -342,11 +371,20 @@ function HomePage() {
                     </div>
                 )}
 
+                <section className={cx('listing-section')} id="danh-sach-phong">
+                    <div className={cx('listing-heading')}>
+                        <div>
+                            <span>KHÁM PHÁ KHÔNG GIAN SỐNG</span>
+                            <h2>Phòng trọ dành cho bạn</h2>
+                        </div>
+                        <span className={cx('listing-count')}>{dataPost.length} tin đăng</span>
+                    </div>
                 <div className={cx('list-content')}>
                     {dataPost.map((post) => (
                         <CardBody key={post._id} post={post} />
                     ))}
                 </div>
+                </section>
             </div>
         </div>
     );

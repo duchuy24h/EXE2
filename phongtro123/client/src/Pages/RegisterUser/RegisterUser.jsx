@@ -12,7 +12,7 @@ const { Text } = Typography;
 
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { requestRegister } from '../../config/request';
+import { requestLoginGoogle, requestRegister } from '../../config/request';
 import { logGaEvent } from '../../analytics/gaHelpers';
 
 function RegisterUser() {
@@ -46,7 +46,7 @@ function RegisterUser() {
     const handleSuccess = async (response) => {
         const { credential } = response; // Nhận ID Token từ Google
         try {
-            const res = await requestLoginGoogle(credential);
+            const res = await requestLoginGoogle({ credential });
             
             // GA4: Đăng ký Google thành công
             logGaEvent('sign_up', { method: 'google' });
@@ -72,6 +72,17 @@ function RegisterUser() {
             </header>
 
             <main className={cx('main')}>
+                <section className={cx('auth-aside')}>
+                    <span className={cx('auth-eyebrow')}>BẮT ĐẦU HÀNH TRÌNH MỚI</span>
+                    <div className={cx('auth-mark')} aria-hidden="true">⌂</div>
+                    <h1>Mái nhà phù hợp đang chờ bạn.</h1>
+                    <p>Tạo tài khoản HomieHub để tìm nơi ở, đăng tin và gặp gỡ những người bạn cùng nhà phù hợp.</p>
+                    <div className={cx('auth-points')}>
+                        <span><i>01</i> Tìm phòng theo nhu cầu</span>
+                        <span><i>02</i> Đăng tin thật dễ dàng</span>
+                        <span><i>03</i> Kết nối cộng đồng HomieHub</span>
+                    </div>
+                </section>
                 <div className={cx('login-container')}>
                     <Tabs defaultActiveKey="1" centered className={cx('login-tabs')}>
                         <TabPane tab="Tạo tài khoản mới" key="1">

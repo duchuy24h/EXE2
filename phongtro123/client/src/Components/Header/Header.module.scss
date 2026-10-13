@@ -462,3 +462,93 @@
         text-shadow: 0 0 0 rgba(204, 204, 204, 0);
     }
 }
+
+@media (max-width: 760px) {
+    .wrapper {
+        height: 138px;
+    }
+
+    .inner {
+        width: calc(100% - 20px);
+        flex-wrap: wrap;
+        align-content: center;
+        gap: 3px 8px;
+    }
+
+    .inner a:first-child {
+        width: 112px;
+        height: 52px;
+    }
+
+    .inner img {
+        width: 108px;
+        height: 50px;
+        margin: 0;
+    }
+
+    .search {
+        order: 3;
+        flex: 0 0 100%;
+        height: 38px;
+
+        .search-box {
+            width: 100%;
+            height: 36px;
+            padding: 0 12px;
+        }
+
+        .search-icon {
+            font-size: 16px;
+        }
+
+        input {
+            font-size: 12px;
+        }
+    }
+
+    .actions {
+        order: 2;
+        flex: 1;
+        gap: 6px;
+
+        > a:nth-child(2) {
+            display: none;
+        }
+
+        .btn-roommate {
+            padding: 9px 11px;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        button {
+            padding: 7px 10px;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+    }
+
+    .user-name {
+        display: none;
+    }
+}
+
+@media (max-width: 380px) {
+    .inner {
+        width: calc(100% - 14px);
+    }
+
+    .actions {
+        gap: 4px;
+
+        .btn-roommate {
+            padding: 8px;
+            font-size: 9px;
+        }
+
+        button {
+            padding: 6px 8px;
+            font-size: 9px;
+        }
+    }
+}

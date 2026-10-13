@@ -57,6 +57,17 @@ function LoginUser() {
             </header>
 
             <main className={cx('main')}>
+                <section className={cx('auth-aside')}>
+                    <span className={cx('auth-eyebrow')}>CHÀO MỪNG BẠN TRỞ LẠI</span>
+                    <div className={cx('auth-mark')} aria-hidden="true">⌂</div>
+                    <h1>Tìm thấy chốn quen, kết nối đúng người.</h1>
+                    <p>Đăng nhập để tiếp tục khám phá phòng trọ và những kết nối mới trên HomieHub.</p>
+                    <div className={cx('auth-points')}>
+                        <span><i>01</i> Khám phá phòng phù hợp</span>
+                        <span><i>02</i> Trò chuyện với chủ trọ</span>
+                        <span><i>03</i> Kết nối bạn cùng nhà</span>
+                    </div>
+                </section>
                 <div className={cx('login-container')}>
                     <Tabs defaultActiveKey="1" centered className={cx('login-tabs')}>
                         <TabPane tab="Đăng nhập" key="1">
