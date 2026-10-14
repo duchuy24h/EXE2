@@ -528,6 +528,45 @@ class controllerUsers {
         new OK({ message: 'Lấy thông tin nạp tiền thành công', metadata: rechargeUser }).send(res);
     }
 
+    async purchasePremium(req, res) {
+        const { id } = req.user;
+        const now = new Date();
+        const premiumExpiresAt = new Date(now);
+        premiumExpiresAt.setMonth(premiumExpiresAt.getMonth() + 1);
+
+        const user = await modelUser.findOneAndUpdate(
+            {
+                _id: id,
+                balance: { $gte: 100 },
+                $or: [{ premiumExpiresAt: null }, { premiumExpiresAt: { $lte: now } }],
+            },
+            {
+                $inc: { balance: -100 },
+                $set: { premiumExpiresAt },
+            },
+            { new: true },
+        );
+
+        if (!user) {
+            const currentUser = await modelUser.findById(id).select('balance premiumExpiresAt roommateProfile.studentStatus');
+            if (currentUser?.premiumExpiresAt && currentUser.premiumExpiresAt > now) {
+                throw new BadRequestError('Gói Premium của bạn vẫn còn hiệu lực');
+            }
+            if (Number(currentUser?.balance || 0) < 100) {
+                throw new BadRequestError('Bạn cần có ít nhất 100 Coin để mua gói Premium');
+            }
+            throw new BadRequestError('Không thể mua gói Premium lúc này');
+        }
+
+        return new OK({
+            message: 'Mua gói Premium thành công',
+            metadata: {
+                balance: user.balance,
+                premiumExpiresAt: user.premiumExpiresAt,
+            },
+        }).send(res);
+    }
+
     async updateUser(req, res) {
         const { id } = req.user;
         const { fullName, phone, email, address, avatar } = req.body;

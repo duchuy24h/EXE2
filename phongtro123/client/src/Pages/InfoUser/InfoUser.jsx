@@ -98,6 +98,7 @@ function InfoUser() {
                         />
                         <Title level={4} style={{ marginTop: 16, marginBottom: 4, color: 'white' }}>
                             {dataUser.fullName}
+                            {dataUser.premiumExpiresAt && new Date(dataUser.premiumExpiresAt) > new Date() ? ' Premium' : ''}
                         </Title>
                         <Row>
                             <Col span={24}>

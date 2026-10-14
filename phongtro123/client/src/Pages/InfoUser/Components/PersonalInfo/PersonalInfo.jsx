@@ -7,6 +7,10 @@ import {
     HeartOutlined,
     EditOutlined,
     UploadOutlined,
+    CrownFilled,
+    TeamOutlined,
+    SafetyCertificateOutlined,
+    StarFilled,
 } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './PersonalInfo.module.scss';
@@ -15,8 +19,7 @@ import { useState, useEffect } from 'react';
 import {
     requestGetFavourite,
     requestUpdateUser,
-    requestUploadImage,
-    requestUploadImages,
+    requestPurchasePremium,
 } from '../../../../config/request';
 import axios from 'axios';
 import useDebounce from '../../../../hooks/useDebounce';
@@ -34,6 +37,7 @@ function PersonalInfo() {
     const [avatarUrl, setAvatarUrl] = useState(dataUser?.avatar || '');
     const [valueSearch, setValueSearch] = useState('');
     const [dataSearch, setDataSearch] = useState([]);
+    const [premiumLoading, setPremiumLoading] = useState(false);
 
     const debouncedSearch = useDebounce(valueSearch, 500);
 
@@ -93,6 +97,19 @@ function PersonalInfo() {
         setIsModalVisible(false);
         form.resetFields();
         setAvatarUrl(dataUser?.avatar || '');
+    };
+
+    const handlePurchasePremium = async () => {
+        setPremiumLoading(true);
+        try {
+            const res = await requestPurchasePremium();
+            message.success(res.message);
+            await fetchAuth();
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Mua gói Premium thất bại');
+        } finally {
+            setPremiumLoading(false);
+        }
     };
 
     const beforeUpload = (file) => {
@@ -160,7 +177,7 @@ function PersonalInfo() {
         endDate: item.endDate,
     }));
 
-    const handleSelectAddress = (value, option) => {
+    const handleSelectAddress = (value) => {
         form.setFieldsValue({ address: value });
     };
 
@@ -181,6 +198,61 @@ function PersonalInfo() {
                 </Button>
             </div>
 
+            {(!dataUser?.premiumExpiresAt || new Date(dataUser.premiumExpiresAt) <= new Date()) && (
+                <section className={cx('premium-card')}>
+                    <div className={cx('premium-heading')}>
+                        <CrownFilled />
+                        <div>
+                            <span className={cx('premium-label')}>HOMIEHUB PREMIUM</span>
+                            <Title level={3}>Tìm đúng người, chọn đúng phòng</Title>
+                            <Text>
+                                Trải nghiệm đầy đủ tiện ích ghép trọ và tìm phòng ưu tiên trong 1 tháng.
+                            </Text>
+                        </div>
+                    </div>
+
+                    <div className={cx('premium-benefits')}>
+                        <div className={cx('premium-benefit')}>
+                            <TeamOutlined />
+                            <div>
+                                <strong>Thêm lựa chọn ghép trọ</strong>
+                                <span>Mở rộng gợi ý và bộ lọc để tìm người phù hợp hơn.</span>
+                            </div>
+                        </div>
+                        <div className={cx('premium-benefit')}>
+                            <SafetyCertificateOutlined />
+                            <div>
+                                <strong>Ưu tiên phòng trọ uy tín</strong>
+                                <span>Ưu tiên khám phá các tin đã được xác minh trên HomieHub.</span>
+                            </div>
+                        </div>
+                        <div className={cx('premium-benefit')}>
+                            <StarFilled />
+                            <div>
+                                <strong>Hồ sơ nổi bật</strong>
+                                <span>Tên của bạn hiển thị kèm nhãn Premium trong thời gian sử dụng.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={cx('premium-footer')}>
+                        <div>
+                            <strong>100 Coin</strong>
+                            <span>Hiệu lực trong 1 tháng</span>
+                        </div>
+                        <Button
+                            loading={premiumLoading}
+                            onClick={handlePurchasePremium}
+                            style={{ color: '#000000' }}
+                        >
+                            <span style={{ color: '#000000' }}>
+                                Mua Premium ngay
+                            </span>
+                        </Button>
+                    </div>
+                </section>
+            )}
+
             <Row gutter={[24, 24]}>
                 <Col span={12}>
                     <Card size="small" className={cx('info-card')}>
@@ -188,7 +260,12 @@ function PersonalInfo() {
                             <UserOutlined className={cx('info-icon')} />
                             <div>
                                 <Text strong>Họ và tên</Text>
-                                <div>{dataUser.fullName}</div>
+                                <div>
+                                    {dataUser.fullName}
+                                    {dataUser.premiumExpiresAt && new Date(dataUser.premiumExpiresAt) > new Date()
+                                        ? ' Premium'
+                                        : ''}
+                                </div>
                             </div>
                         </div>
                     </Card>

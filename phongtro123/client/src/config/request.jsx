@@ -132,6 +132,11 @@ export const requestGetRechargeStats = async () => {
     return res.data;
 };
 
+export const requestPurchasePremium = async () => {
+    const res = await request.post('/api/premium/purchase');
+    return res.data;
+};
+
 //// posts
 
 export const requestUploadImages = async (data) => {

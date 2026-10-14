@@ -67,6 +67,7 @@ function routes(app) {
     app.get('/api/logout', userRoutes);
     app.get('/api/refresh-token', userRoutes);
     app.get('/api/recharge-user', userRoutes);
+    app.post('/api/premium/purchase', userRoutes);
     app.post('/api/update-user', userRoutes);
     app.post('/api/change-password', userRoutes);
     app.post('/api/roommate/profile', userRoutes);

@@ -12,6 +12,7 @@ router.get('/api/auth', authUser, asyncHandler(controllerUsers.authUser));
 router.get('/api/logout', authUser, asyncHandler(controllerUsers.logout));
 router.get('/api/refresh-token', asyncHandler(controllerUsers.refreshToken));
 router.get('/api/recharge-user', authUser, asyncHandler(controllerUsers.getRechargeUser));
+router.post('/api/premium/purchase', authUser, asyncHandler(controllerUsers.purchasePremium));
 router.post('/api/update-user', authUser, asyncHandler(controllerUsers.updateUser));
 router.post('/api/change-password', authUser, asyncHandler(controllerUsers.changePassword));
 router.post('/api/roommate/profile', authUser, asyncHandler(controllerUsers.saveRoommateProfile));

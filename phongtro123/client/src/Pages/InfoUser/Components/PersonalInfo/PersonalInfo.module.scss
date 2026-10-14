@@ -14,3 +14,146 @@
     margin-right: 10px;
     color: #1890ff;
 }
+
+.premium-card {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 24px;
+    padding: 28px;
+    border-radius: 18px;
+    color: #fff;
+    background:
+        radial-gradient(circle at 84% 0%, rgba(255, 255, 255, 0.2) 0 12%, transparent 12.5%),
+        radial-gradient(circle at 96% 12%, rgba(255, 255, 255, 0.1) 0 19%, transparent 19.5%),
+        linear-gradient(135deg, #ff8a00 0%, #ff5b22 100%);
+    box-shadow: 0 12px 28px rgba(255, 111, 28, 0.3);
+}
+
+.premium-heading {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+
+    > svg {
+        flex: 0 0 auto;
+        margin-top: 4px;
+        padding: 12px;
+        font-size: 30px;
+        color: #ff7a00;
+        background: #fff;
+        border-radius: 14px;
+    }
+
+    :global(.ant-typography) {
+        margin: 3px 0 5px;
+        color: #fff;
+    }
+
+    :global(.ant-typography-secondary) {
+        color: rgba(255, 255, 255, 0.88);
+    }
+}
+
+.premium-label {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    color: #fff;
+}
+
+.premium-benefits {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 26px 0 22px;
+}
+
+.premium-benefit {
+    display: flex;
+    gap: 12px;
+    min-height: 112px;
+    padding: 16px;
+    color: #333;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 14px;
+
+    > svg {
+        flex: 0 0 auto;
+        margin-top: 2px;
+        font-size: 25px;
+        color: #ff7a00;
+    }
+
+    strong,
+    span {
+        display: block;
+    }
+
+    strong {
+        margin-bottom: 6px;
+        font-size: 14px;
+    }
+
+    span {
+        font-size: 12px;
+        line-height: 1.45;
+        color: #6a6a6a;
+    }
+}
+
+.premium-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+
+    strong,
+    span {
+        display: block;
+    }
+
+    strong {
+        font-size: 22px;
+    }
+
+    span {
+        color: rgba(255, 255, 255, 0.88);
+    }
+
+    :global(.ant-btn) {
+        height: 42px;
+        padding: 0 22px;
+        font-weight: 700;
+        color: #f15a24;
+        border: 0;
+        border-radius: 21px;
+        background: #fff;
+    }
+}
+
+@media (max-width: 768px) {
+    .premium-card {
+        padding: 20px;
+    }
+
+    .premium-benefits {
+        grid-template-columns: 1fr;
+    }
+
+    .premium-benefit {
+        min-height: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .premium-heading,
+    .premium-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .premium-footer :global(.ant-btn) {
+        width: 100%;
+    }
+}

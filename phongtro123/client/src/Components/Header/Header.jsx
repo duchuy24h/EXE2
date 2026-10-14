@@ -139,7 +139,12 @@ function Header() {
                                             src={dataUser.avatar || null}
                                             icon={!dataUser.avatar ? <UserOutlined /> : null}
                                         />
-                                        <span className={cx('user-name')}>{dataUser.fullName || 'User'}</span>
+                                        <span className={cx('user-name')}>
+                                            {dataUser.fullName || 'User'}
+                                            {dataUser.premiumExpiresAt && new Date(dataUser.premiumExpiresAt) > new Date()
+                                                ? ' Premium'
+                                                : ''}
+                                        </span>
                                     </Space>
                                 </a>
                             </Dropdown>
